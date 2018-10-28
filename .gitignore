@@ -1,0 +1,17 @@
+node_modules
+.tmp
+tmp*
+npm-debug.log
+poop.log
+heapdump*
+credentials.js
+**/doggo.sqlite
+package-lock.json
+
+### OS and Software generated files ###
+
+.DS_Store
+ehthumbs.db
+Thumbs.db
+._*
+.idea/
