@@ -9,6 +9,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "cryptiles": "^4.1.2"
+    "cryptiles": "^4.1.2",
+    "doggo-core": "0.0.2"
   }
 }
