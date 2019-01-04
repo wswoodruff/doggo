@@ -10,6 +10,8 @@
   "license": "MIT",
   "dependencies": {
     "cryptiles": "^4.1.2",
-    "doggo-core": "0.x.x"
+    "doggo-core": "0.x.x",
+    "jsondiffpatch": "^0.3.11",
+    "lowdb": "^1.0.0"
   }
 }
