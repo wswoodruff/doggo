@@ -4,9 +4,6 @@ const Util = require('util');
 const Fs = require('fs');
 const Path = require('path');
 
-const KeyConfig = require('../lib/keyConfig');
-const TestKeyConfig = require('./testKeyConfig');
-const Bounce = require('bounce');
 const Schema = require('../lib/schema');
 const Joi = require('joi');
 
@@ -47,7 +44,6 @@ internals.constants = {
     }
 };
 
-
 module.exports = class DoggoAdapterTestSuite {
 
     constructor(adapter, testUtils) {
@@ -60,7 +56,7 @@ module.exports = class DoggoAdapterTestSuite {
     genTests() {
 
         const { name } = this.adapter;
-        const { expect, lab: { before, describe, it } } = this.testUtils;
+        const { expect, lab: { describe, it } } = this.testUtils;
         const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = internals.constants;
 
         const promiseReadFile = Util.promisify(Fs.readFile);
@@ -83,12 +79,13 @@ module.exports = class DoggoAdapterTestSuite {
                 expect(poPubKeyImportRes).to.include(PUB_ONLY.identifier);
 
                 const importSecretKeys = async (srcPubSec, srcSecOnly) => {
+
                     const { output: psSecKeyImportRes } = await DoggoCore.api.importKey(srcPubSec, 'sec', PUB_SEC.password);
                     const { output: soSecKeyImportRes } = await DoggoCore.api.importKey(srcSecOnly, 'sec', SEC_ONLY.password);
 
                     expect(psSecKeyImportRes).to.include(PUB_SEC.identifier);
                     expect(soSecKeyImportRes).to.include(SEC_ONLY.identifier);
-                }
+                };
 
                 if (DoggoCore.adapter.name === 'gpg') {
                     // gpg adapter specific
@@ -278,14 +275,13 @@ internals.safeUnlink = async (unlinkPath) => {
     }
 };
 
-internals.genKeys = async (Doggo, ...args) => await DoggoCore.api.genKeys(...args);
+internals.genKeys = async (DoggoCore, ...args) => await DoggoCore.api.genKeys(...args);
 
 internals.randomNumberNoDot = () => String(Math.random()).replace('.', '');
 
-internals.extractFingerprintFromCreationSuccessMessage = async (msg) => {
+internals.extractFingerprintFromCreationSuccessMessage = async (DoggoCore, msg) => {
 
-    const [err, res] = await DoggoCore.api.getFingerprint(msg.split(' key ')[1].split(' ')[0]);
-    expect(res.length).to.equal(1);
+    const [, res] = await DoggoCore.api.getFingerprint(msg.split(' key ')[1].split(' ')[0]);
     return res[0].fingerprint;
 };
 

@@ -4,12 +4,16 @@
   "description": "doggo",
   "main": "lib/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "NODE_ENV=test lab -a @hapi/code -I '__core-js_shared__,core,cptable,FinalizationRegistry,WeakRef' -L --verbose"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "cryptiles": "4.x.x",
-    "joi": "14.x.x"
+    "@hapi/cryptiles": "5.1.0",
+    "joi": "17.2.1"
+  },
+  "devDependencies": {
+    "@hapi/code": "8.0.2",
+    "@hapi/lab": "24.0.0"
   }
 }
