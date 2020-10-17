@@ -1,5 +1,4 @@
 # doggo
 
 > Friendly, secure, free password manager
-
-<img width=500 src="https://swervy.io/code/doggo-lock" />
+<img width=300 src="https://swervy.io/code/doggo-lock" />
