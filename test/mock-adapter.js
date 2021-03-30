@@ -14,7 +14,7 @@ const TestKeyInfo = require('./test-key-info');
 
 const internals = {};
 
-internals.getKeyValues = async () => {
+internals.getAllKeyValues = async () => {
 
     const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = TestKeyInfo;
 
@@ -31,38 +31,82 @@ internals.getKeyValues = async () => {
     };
 };
 
-internals.getKeyListInfo = ({ fingerprint, identifier }) => ({
+internals.getKeyBasicInfo = ({ fingerprint, identifier }) => ({
     fingerprint,
     identifier
 });
 
 internals.lower = (str) => str.toLowerCase();
 
-internals.searchForKeys = (search, type) => {
+internals.pickArr = (key, arr) => arr.map((obj) => obj[key]);
+
+internals.getFileContents = async (path) => {
+
+    const contents = await Fs.readFile(path);
+    return contents.toString('utf8');
+};
+
+internals.searchForKeys = async (options) => {
+
+    const {
+        search = '',
+        type = 'all',
+        map = (x) => x,
+        resolve = false
+    } = options;
 
     const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = TestKeyInfo;
 
-    const { lower } = internals;
+    const { lower, getFileContents } = internals;
 
-    return [
+    const filteredKeys = [
         PUB_SEC,
         SEC_ONLY,
         PUB_ONLY
     ]
-        .filter((keyInfo) => {
+        // Search
+        .filter(({ fingerprint, identifier }) => {
 
-            const {
-                fingerprint,
-                identifier
-            } = keyInfo;
-
-            return lower(fingerprint).includes(lower(search)) || lower(identifier).includes(lower(search));
+            // Case-insensitive
+            return lower(fingerprint).includes(lower(search))
+                || lower(identifier).includes(lower(search));
         })
-        .map((keyInfo) => {
+        // Type filter
+        .filter(({ keyPaths }) => {
 
-            //
-        });
+            switch (type) {
+                case 'all':
+                    return true;
+                case 'pub':
+                    return true; // All 'pub' or 'sec' keys have 'pub'
+                case 'sec':
+                    return !!keyPaths.sec;
+            }
+        })
+        .map((keyInfo) => map(keyInfo));
+
+    if (!resolve) {
+        return filteredKeys;
+    }
+
+    // Add 'keyValues' prop
+    return await Promise.all(
+        filteredKeys
+            .map(async ({ keyPaths, ...rest }) => {
+
+                return {
+                    ...rest,
+                    keyPaths,
+                    keyValues: {
+                        pub: !keyPaths.pub ? null : await getFileContents(keyPaths.pub),
+                        sec: !keyPaths.sec ? null : await getFileContents(keyPaths.sec)
+                    }
+                }
+            })
+    );
 };
+
+//////////////////////////////////
 
 module.exports = {
     name: 'mock',
@@ -70,14 +114,17 @@ module.exports = {
     deleteKeys: () => null,
     importKey: async ({ key, type, password }) => {
 
-        const { getKeyValues, getKeyListInfo } = internals;
+        const {
+            getAllKeyValues,
+            getKeyBasicInfo
+        } = internals;
 
         const {
             pubAndSecPubKey,
             pubAndSecSecKey,
             pubOnlyPubKey,
             secOnlySecKey
-        } = await getKeyValues();
+        } = await getAllKeyValues();
 
         const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = TestKeyInfo;
 
@@ -97,30 +144,34 @@ module.exports = {
                 matchedKey = SEC_ONLY;
                 break;
             default:
-                return { output: null, error: new Error('Developer error') };
+                throw new Error('Developer error');
         }
 
-        return { output: getKeyListInfo(matchedKey), error: null };
+        return getKeyBasicInfo(matchedKey);
     },
     exportKey: () => null,
-    listKeys: (search, type) => {
+    listKeys: async ({ search, type, first } = {}) => {
 
-        const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = TestKeyInfo;
+        const {
+            searchForKeys,
+            pickArr
+        } = internals;
 
-        [PUB_SEC, SEC_ONLY, PUB_ONLY]
-            .filter((keyInfo) => {
+        const keys = pickArr('keyValues', await searchForKeys({
+            search,
+            type,
+            resolve: true
+        }));
 
-                const {
-                    fingerprint,
-                    identifier
-                } = keyInfo;
+        if (first) {
+            if (keys.length !== 1) {
+                // TODO change to specific error pulled in from doggo
+                throw new Error('Will only return first if one result exists');
+            }
+            return keys[0];
+        }
 
-                return fingerprint.includes(search) || identifier.includes(search);
-            })
-            .find(() => {
-
-                //
-            });
+        return keys;
     },
     encrypt: () => null,
     decrypt: () => null,

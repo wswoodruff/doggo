@@ -23,11 +23,6 @@ internals.testUtilsSchema = Joi.object({
     }).required()
 });
 
-internals.listKeySchema = Joi.object({
-    fingerprint: Joi.string().required(),
-    identifier: Joi.string().required()
-}).required();
-
 module.exports = class DoggoAdapterTestSuite {
 
     constructor(adapter, testUtils = {}) {
@@ -49,7 +44,6 @@ module.exports = class DoggoAdapterTestSuite {
         const { name } = this.adapter;
         const { expect, lab: { describe, it } } = this.testUtils;
         const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = TestKeyInfo;
-        const { listKeySchema } = internals;
 
         const DoggoCore = this.doggoCore;
 
@@ -80,59 +74,57 @@ module.exports = class DoggoAdapterTestSuite {
                     type: 'pub'
                 });
 
-                const responseSchema = Joi.object({
-                    output: listKeySchema,
-                    error: Joi.any().required()
-                }).required();
-
                 // PUB_SEC pub
-                expect(() => Joi.assert(pubAndSecSecKeyImportRes, responseSchema)).to.not.throw();
-                expect(pubAndSecSecKeyImportRes.error).to.equal(null);
-                expect(pubAndSecSecKeyImportRes.output.fingerprint).to.equal(PUB_SEC.fingerprint);
-                expect(pubAndSecSecKeyImportRes.output.identifier).to.equal(PUB_SEC.identifier);
+                expect(() => Joi.assert(pubAndSecSecKeyImportRes, Schemas.keyInfo)).to.not.throw();
+                expect(pubAndSecSecKeyImportRes.fingerprint).to.equal(PUB_SEC.fingerprint);
+                expect(pubAndSecSecKeyImportRes.identifier).to.equal(PUB_SEC.identifier);
 
                 // PUB_SEC sec
-                expect(() => Joi.assert(pubAndSecPubKeyImportRes, responseSchema)).to.not.throw();
-                expect(pubAndSecPubKeyImportRes.error).to.equal(null);
-                expect(pubAndSecPubKeyImportRes.output.fingerprint).to.equal(PUB_SEC.fingerprint);
-                expect(pubAndSecPubKeyImportRes.output.identifier).to.equal(PUB_SEC.identifier);
+                expect(() => Joi.assert(pubAndSecPubKeyImportRes, Schemas.keyInfo)).to.not.throw();
+                expect(pubAndSecPubKeyImportRes.fingerprint).to.equal(PUB_SEC.fingerprint);
+                expect(pubAndSecPubKeyImportRes.identifier).to.equal(PUB_SEC.identifier);
 
                 // SEC_ONLY
-                expect(() => Joi.assert(secOnlySecKeyImportRes, responseSchema)).to.not.throw();
-                expect(secOnlySecKeyImportRes.error).to.equal(null);
-                expect(secOnlySecKeyImportRes.output.fingerprint).to.equal(SEC_ONLY.fingerprint);
-                expect(secOnlySecKeyImportRes.output.identifier).to.equal(SEC_ONLY.identifier);
+                expect(() => Joi.assert(secOnlySecKeyImportRes, Schemas.keyInfo)).to.not.throw();
+                expect(secOnlySecKeyImportRes.fingerprint).to.equal(SEC_ONLY.fingerprint);
+                expect(secOnlySecKeyImportRes.identifier).to.equal(SEC_ONLY.identifier);
 
                 // PUB_ONLY
-                expect(() => Joi.assert(pubOnlyPubKeyImportRes, responseSchema)).to.not.throw();
-                expect(pubOnlyPubKeyImportRes.error).to.equal(null);
-                expect(pubOnlyPubKeyImportRes.output.fingerprint).to.equal(PUB_ONLY.fingerprint);
-                expect(pubOnlyPubKeyImportRes.output.identifier).to.equal(PUB_ONLY.identifier);
+                expect(() => Joi.assert(pubOnlyPubKeyImportRes, Schemas.keyInfo)).to.not.throw();
+                expect(pubOnlyPubKeyImportRes.fingerprint).to.equal(PUB_ONLY.fingerprint);
+                expect(pubOnlyPubKeyImportRes.identifier).to.equal(PUB_ONLY.identifier);
 
                 // Wait a couple secs for gpg to get its act together.
-                // Having issues with these imported keys not showing up immediately
-                // in lists
+                // Having issues with these imported keys not showing up immediately in lists
                 if (DoggoCore.api.name === 'gpg') {
                     return new Promise((res) => setTimeout(() => res(), 2000));
                 }
             });
 
+            // it('lists keys by type', async () => {
+
+            //     // const { output: pubKeys } = await DoggoCore.api.listKeys({ type: 'pub' });
+            //     // const secKeys = await DoggoCore.api.listKeys({ type: 'sec' });
+            //     // const allKeys = await DoggoCore.api.listKeys();
+            // });
+
             it('lists keys', async () => {
 
-                const { output: pubKeys } = await DoggoCore.api.listKeys('', 'pub');
-                const secKeys = await DoggoCore.api.listKeys('', 'sec');
-                const allKeys = await DoggoCore.api.listKeys();
+                const pubKeys = await DoggoCore.api.listKeys({ type: 'pub' });
+                const secKeys = await DoggoCore.api.listKeys({ type: 'sec' });
+                const allKeys = await DoggoCore.api.listKeys({ type: 'all' });
+                const noOptions = await DoggoCore.api.listKeys();
 
-                //////////
+                // TODO getfirst via await DoggoCore.api.listKeys({ key: someFingerprint, first: true });
 
-                Joi.assert(allKeys, Schemas.keysObj, 'listKeys must match schema \'keysObj\' in doggo-core/lib/schema.js');
-                Joi.assert(pubKeys, Schemas.keyListItem, 'pub keyList must match schema \'keyListItem\' in doggo-core/lib/schema.js');
-                Joi.assert(secKeys, Schemas.keyListItem, 'sec keyList must match schema \'keyListItem\' in doggo-core/lib/schema.js');
+                expect(() => Joi.assert(pubKeys, Joi.array().items(Schemas.keys))).to.not.throw();
+                expect(() => Joi.assert(secKeys, Joi.array().items(Schemas.keys))).to.not.throw();
+                expect(() => Joi.assert(allKeys, Joi.array().items(Schemas.keys))).to.not.throw();
+                expect(() => Joi.assert(noOptions, Joi.array().items(Schemas.keys))).to.not.throw();
 
                 const { pub, sec } = allKeys;
 
-                expect(pub).to.equal(pubKeys);
-
+                expect(pub).to.equal(pubKeys.pub);
                 expect(sec).to.equal(secKeys);
 
                 // Finding a key
