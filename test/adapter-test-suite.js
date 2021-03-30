@@ -57,31 +57,28 @@ module.exports = class DoggoAdapterTestSuite {
 
             it('imports valid keys', async () => {
 
-                const publicAndSecretPubKey = await Fs.readFile(PUB_SEC.keyPaths.pub);
-                const publicAndSecretSecKey = await Fs.readFile(PUB_SEC.keyPaths.sec);
-                const publicOnlyPubKey = await Fs.readFile(PUB_ONLY.keyPaths.pub);
-                const secretOnlySecKey = await Fs.readFile(SEC_ONLY.keyPaths.sec);
+                const IS_GPG = DoggoCore.api.name === 'gpg';
 
-                let pubAndSecSecKeyImportRes;
-                let secOnlySecKeyImportRes;
-                let pubAndSecPubKeyImportRes;
-                let pubOnlyPubKeyImportRes;
+                await Fs.readFile(SEC_ONLY.keyPaths.sec)
 
-                // TODO wanna fix this
-                if (DoggoCore.api.name === 'gpg') {
-                    // gpg adapter specific
-                    // When importing a secret key it must be a filepath
-                    pubAndSecSecKeyImportRes = await DoggoCore.api.importKey(PUB_SEC.keyPaths.sec, 'sec', PUB_SEC.password);
-                    secOnlySecKeyImportRes = await DoggoCore.api.importKey(SEC_ONLY.keyPaths.sec, 'sec', SEC_ONLY.password);
-                    pubAndSecPubKeyImportRes = await DoggoCore.api.importKey(PUB_SEC.keyPaths.pub, 'pub');
-                    pubOnlyPubKeyImportRes = await DoggoCore.api.importKey(PUB_ONLY.keyPaths.pub, 'pub');
-                }
-                else {
-                    pubAndSecSecKeyImportRes = await DoggoCore.api.importKey(publicAndSecretSecKey.toString('utf8'), 'sec', PUB_SEC.password);
-                    secOnlySecKeyImportRes = await DoggoCore.api.importKey(secretOnlySecKey.toString('utf8'), 'sec', SEC_ONLY.password);
-                    pubAndSecPubKeyImportRes = await DoggoCore.api.importKey(publicAndSecretPubKey.toString('utf8'), 'pub');
-                    pubOnlyPubKeyImportRes = await DoggoCore.api.importKey(publicOnlyPubKey.toString('utf8'), 'pub');
-                }
+                const pubAndSecSecKeyImportRes = await DoggoCore.api.importKey({
+                    key: IS_GPG ? PUB_SEC.keyPaths.sec : (await Fs.readFile(PUB_SEC.keyPaths.sec)).toString('utf8'),
+                    type: 'sec',
+                    password: PUB_SEC.password
+                });
+                const pubAndSecPubKeyImportRes = await DoggoCore.api.importKey({
+                    key: IS_GPG ? PUB_SEC.keyPaths.pub : (await Fs.readFile(PUB_SEC.keyPaths.pub)).toString('utf8'),
+                    type: 'pub'
+                });
+                const secOnlySecKeyImportRes = await DoggoCore.api.importKey({
+                    key: IS_GPG ? SEC_ONLY.keyPaths.sec : (await Fs.readFile(SEC_ONLY.keyPaths.sec)).toString('utf8'),
+                    type: 'sec',
+                    password: SEC_ONLY.password
+                });
+                const pubOnlyPubKeyImportRes = await DoggoCore.api.importKey({
+                    key: IS_GPG ? PUB_ONLY.keyPaths.pub : (await Fs.readFile(PUB_ONLY.keyPaths.pub)).toString('utf8'),
+                    type: 'pub'
+                });
 
                 const responseSchema = Joi.object({
                     output: listKeySchema,
@@ -97,8 +94,8 @@ module.exports = class DoggoAdapterTestSuite {
                 // PUB_SEC sec
                 expect(() => Joi.assert(pubAndSecPubKeyImportRes, responseSchema)).to.not.throw();
                 expect(pubAndSecPubKeyImportRes.error).to.equal(null);
-                expect(pubAndSecPubKeyImportRes.output.fingerprint).to.include(PUB_SEC.fingerprint);
-                expect(pubAndSecPubKeyImportRes.output.identifier).to.include(PUB_SEC.identifier);
+                expect(pubAndSecPubKeyImportRes.output.fingerprint).to.equal(PUB_SEC.fingerprint);
+                expect(pubAndSecPubKeyImportRes.output.identifier).to.equal(PUB_SEC.identifier);
 
                 // SEC_ONLY
                 expect(() => Joi.assert(secOnlySecKeyImportRes, responseSchema)).to.not.throw();
@@ -109,8 +106,8 @@ module.exports = class DoggoAdapterTestSuite {
                 // PUB_ONLY
                 expect(() => Joi.assert(pubOnlyPubKeyImportRes, responseSchema)).to.not.throw();
                 expect(pubOnlyPubKeyImportRes.error).to.equal(null);
-                expect(pubOnlyPubKeyImportRes.output.fingerprint).to.include(PUB_ONLY.fingerprint);
-                expect(pubOnlyPubKeyImportRes.output.identifier).to.include(PUB_ONLY.identifier);
+                expect(pubOnlyPubKeyImportRes.output.fingerprint).to.equal(PUB_ONLY.fingerprint);
+                expect(pubOnlyPubKeyImportRes.output.identifier).to.equal(PUB_ONLY.identifier);
 
                 // Wait a couple secs for gpg to get its act together.
                 // Having issues with these imported keys not showing up immediately
@@ -126,9 +123,11 @@ module.exports = class DoggoAdapterTestSuite {
                 const secKeys = await DoggoCore.api.listKeys('', 'sec');
                 const allKeys = await DoggoCore.api.listKeys();
 
+                //////////
+
                 Joi.assert(allKeys, Schemas.keysObj, 'listKeys must match schema \'keysObj\' in doggo-core/lib/schema.js');
-                Joi.assert(pubKeys, Schemas.keysList, 'pub keyList must match schema \'keysList\' in doggo-core/lib/schema.js');
-                Joi.assert(secKeys, Schemas.keysList, 'sec keyList must match schema \'keysList\' in doggo-core/lib/schema.js');
+                Joi.assert(pubKeys, Schemas.keyListItem, 'pub keyList must match schema \'keyListItem\' in doggo-core/lib/schema.js');
+                Joi.assert(secKeys, Schemas.keyListItem, 'sec keyList must match schema \'keyListItem\' in doggo-core/lib/schema.js');
 
                 const { pub, sec } = allKeys;
 

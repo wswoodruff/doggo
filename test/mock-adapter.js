@@ -68,7 +68,7 @@ module.exports = {
     name: 'mock',
     genKeys: () => null,
     deleteKeys: () => null,
-    importKey: async (str, type) => {
+    importKey: async ({ key, type, password }) => {
 
         const { getKeyValues, getKeyListInfo } = internals;
 
@@ -81,26 +81,26 @@ module.exports = {
 
         const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = TestKeyInfo;
 
-        let key = {};
+        let matchedKey = {};
 
-        switch (str) {
+        switch (key) {
             case pubAndSecPubKey:
-                key = PUB_SEC;
+                matchedKey = PUB_SEC;
                 break;
             case pubAndSecSecKey:
-                key = PUB_SEC;
+                matchedKey = PUB_SEC;
                 break;
             case pubOnlyPubKey:
-                key = PUB_ONLY;
+                matchedKey = PUB_ONLY;
                 break;
             case secOnlySecKey:
-                key = SEC_ONLY;
+                matchedKey = SEC_ONLY;
                 break;
             default:
                 return { output: null, error: new Error('Developer error') };
         }
 
-        return { output: getKeyListInfo(key), error: null };
+        return { output: getKeyListInfo(matchedKey), error: null };
     },
     exportKey: () => null,
     listKeys: (search, type) => {
