@@ -2,14 +2,18 @@
   "name": "doggo",
   "version": "0.1.0",
   "description": "doggo",
+  "author": "wswoodruff",
+  "license": "MIT",
   "main": "lib/index.js",
   "scripts": {
-    "test": "NODE_ENV=test lab -a @hapi/code -I '__core-js_shared__,core,cptable,FinalizationRegistry,WeakRef' -L --verbose"
+    "lint": "eslint .",
+    "test": "NODE_ENV=test lab -a @hapi/code -I '__core-js_shared__,core,cptable,FinalizationRegistry,WeakRef' -L --verbose -t 100"
   },
-  "author": "",
-  "license": "MIT",
   "dependencies": {
     "@hapi/cryptiles": "5.1.0",
+    "@hapi/eslint-config-hapi": "^13.0.2",
+    "@hapi/eslint-plugin-hapi": "^4.3.6",
+    "dedent": "^0.7.0",
     "joi": "17.2.1"
   },
   "devDependencies": {

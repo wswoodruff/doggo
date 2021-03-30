@@ -2,6 +2,10 @@
 
 const Os = require('os');
 
+// const Dedent = require('../vendor/dedent');
+
+// console.log('Dedent', Dedent);
+
 const internals = {};
 
 module.exports = {

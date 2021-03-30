@@ -1,11 +1,11 @@
 'use strict';
 
-const Util = require('util');
-const Fs = require('fs');
-const Path = require('path');
+const { promises: Fs } = require('fs');
 
-const Schema = require('../lib/schema');
 const Joi = require('joi');
+
+const Schemas = require('../lib/schema');
+const TestKeyInfo = require('./test-key-info');
 
 const internals = {};
 
@@ -15,91 +15,74 @@ const internals = {};
 // TODO normalize adapter output to something like
 // { output, fingerprints, ...etc }
 
-internals.constants = {
-    KEYS: {
-        PUB_SEC: {
-            fingerprint: '8EE6530544AD9745D5A32C485E27573F6126A601',
-            identifier: 'doggo test pubSec 09723339678055607',
-            password: 'test',
-            keyPaths: {
-                pub: Path.join(__dirname, 'secures/keys/pubSec.pub'),
-                sec: Path.join(__dirname, 'secures/keys/pubSec.sec')
-            }
-        },
-        SEC_ONLY: {
-            fingerprint: 'C621F4FD6113F55B1AFC0ED13844975650F7B6FC',
-            identifier: 'doggo test sec only 07654950429608411',
-            password: 'test',
-            keyPaths: {
-                sec: Path.join(__dirname, 'secures/keys/secOnly.sec')
-            }
-        },
-        PUB_ONLY: {
-            fingerprint: 'ED13DABE5CFDBCF66C50C42490C974227C71F5E0',
-            identifier: 'doggo test pub only 064285959780167',
-            keyPaths: {
-                pub: Path.join(__dirname, 'secures/keys/pubOnly.pub')
-            }
-        }
-    }
-};
+internals.testUtilsSchema = Joi.object({
+    expect: Joi.func().required(),
+    lab: Joi.object({
+        describe: Joi.func().required(),
+        it: Joi.func().required()
+    }).required()
+});
 
 module.exports = class DoggoAdapterTestSuite {
 
-    constructor(adapter, testUtils) {
+    constructor(adapter, testUtils = {}) {
+
+        Joi.assert(adapter, Schemas.adapter, 'Invalid adapter passed');
 
         this.adapter = adapter;
         this.doggoCore = require('../lib')(adapter);
+
+        const { testUtilsSchema } = internals;
+
+        Joi.assert(testUtils, testUtilsSchema, 'Invalid testUtils passed');
+
         this.testUtils = testUtils;
     }
 
-    genTests() {
+    genAndRunTests() {
 
         const { name } = this.adapter;
         const { expect, lab: { describe, it } } = this.testUtils;
-        const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = internals.constants;
-
-        const promiseReadFile = Util.promisify(Fs.readFile);
+        const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = TestKeyInfo;
 
         const DoggoCore = this.doggoCore;
 
-        describe(`adapter "${name}" tests:`, () => {
+        describe(`doggo adapter "${name}" tests:`, () => {
 
             it('imports keys', async () => {
 
-                const psPubKey = await promiseReadFile(PUB_SEC.keyPaths.pub);
-                const psSecKey = await promiseReadFile(PUB_SEC.keyPaths.sec);
-                const poPubKey = await promiseReadFile(PUB_ONLY.keyPaths.pub);
-                const soSecKey = await promiseReadFile(SEC_ONLY.keyPaths.sec);
+                const publicAndSecretPubKey = await Fs.readFile(PUB_SEC.keyPaths.pub);
+                const publicAndSecretSecKey = await Fs.readFile(PUB_SEC.keyPaths.sec);
+                const publicOnlyPubKey = await Fs.readFile(PUB_ONLY.keyPaths.pub);
+                const secretOnlySecKey = await Fs.readFile(SEC_ONLY.keyPaths.sec);
 
-                const { output: psPubKeyImportRes } = await DoggoCore.api.importKey(psPubKey.toString('utf8'), 'pub');
-                const { output: poPubKeyImportRes } = await DoggoCore.api.importKey(poPubKey.toString('utf8'), 'pub');
+                const { output: publicAndSecretPubKeyImportOutput } = await DoggoCore.api.importKey(publicAndSecretPubKey.toString('utf8'), 'pub');
+                const { output: publicOnlyPubKeyImportOutput } = await DoggoCore.api.importKey(publicOnlyPubKey.toString('utf8'), 'pub');
 
-                expect(psPubKeyImportRes).to.include(PUB_SEC.identifier);
-                expect(poPubKeyImportRes).to.include(PUB_ONLY.identifier);
+                expect(publicAndSecretPubKeyImportOutput).to.include(PUB_SEC.identifier);
+                expect(publicOnlyPubKeyImportOutput).to.include(PUB_ONLY.identifier);
 
-                const importSecretKeys = async (srcPubSec, srcSecOnly) => {
-
-                    const { output: psSecKeyImportRes } = await DoggoCore.api.importKey(srcPubSec, 'sec', PUB_SEC.password);
-                    const { output: soSecKeyImportRes } = await DoggoCore.api.importKey(srcSecOnly, 'sec', SEC_ONLY.password);
-
-                    expect(psSecKeyImportRes).to.include(PUB_SEC.identifier);
-                    expect(soSecKeyImportRes).to.include(SEC_ONLY.identifier);
-                };
-
-                if (DoggoCore.adapter.name === 'gpg') {
+                if (DoggoCore.api.name === 'gpg') {
                     // gpg adapter specific
                     // When importing a secret key it must be a filepath
-                    importSecretKeys(PUB_SEC.keyPaths.sec, SEC_ONLY.keyPaths.sec);
+                    const { output: publicAndSecretSecKeyImportRes } = await DoggoCore.api.importKey(PUB_SEC.keyPaths.sec, 'sec', PUB_SEC.password);
+                    const { output: secOnlySecKeyImportRes } = await DoggoCore.api.importKey(SEC_ONLY.keyPaths.sec, 'sec', SEC_ONLY.password);
+
+                    expect(publicAndSecretSecKeyImportRes).to.include(PUB_SEC.identifier);
+                    expect(secOnlySecKeyImportRes).to.include(SEC_ONLY.identifier);
                 }
                 else {
-                    importSecretKeys(psSecKey.toString('utf8'), soSecKey.toString('utf8'));
+                    const { output: publicAndSecretSecKeyImportRes } = await DoggoCore.api.importKey(publicAndSecretSecKey.toString('utf8'), 'sec', PUB_SEC.password);
+                    const { output: secOnlySecKeyImportRes } = await DoggoCore.api.importKey(secretOnlySecKey.toString('utf8'), 'sec', SEC_ONLY.password);
+
+                    expect(publicAndSecretSecKeyImportRes).to.include(PUB_SEC.identifier);
+                    expect(secOnlySecKeyImportRes).to.include(SEC_ONLY.identifier);
                 }
 
                 // Wait a couple secs for gpg to get its act together.
                 // Having issues with these imported keys not showing up immediately
                 // in lists
-                if (DoggoCore.adapter.name === 'gpg') {
+                if (DoggoCore.api.name === 'gpg') {
                     return new Promise((res) => setTimeout(() => res(), 2000));
                 }
             });
@@ -110,9 +93,9 @@ module.exports = class DoggoAdapterTestSuite {
                 const secKeys = await DoggoCore.api.listKeys('', 'sec');
                 const allKeys = await DoggoCore.api.listKeys();
 
-                Joi.assert(allKeys, Schema.keysObj, 'listKeys must match schema \'keysObj\' in doggo-core/lib/schema.js');
-                Joi.assert(pubKeys, Schema.keysList, 'pub keyList must match schema \'keysList\' in doggo-core/lib/schema.js');
-                Joi.assert(secKeys, Schema.keysList, 'sec keyList must match schema \'keysList\' in doggo-core/lib/schema.js');
+                Joi.assert(allKeys, Schemas.keysObj, 'listKeys must match schema \'keysObj\' in doggo-core/lib/schema.js');
+                Joi.assert(pubKeys, Schemas.keysList, 'pub keyList must match schema \'keysList\' in doggo-core/lib/schema.js');
+                Joi.assert(secKeys, Schemas.keysList, 'sec keyList must match schema \'keysList\' in doggo-core/lib/schema.js');
 
                 const { pub, sec } = allKeys;
 
@@ -173,8 +156,8 @@ module.exports = class DoggoAdapterTestSuite {
 
                 await DoggoCore.api.encrypt(PUB_SEC.identifier, srcFile, destFile);
 
-                const plaintext = await promiseReadFile(srcFile);
-                const encrypted = await promiseReadFile(destFile);
+                const plaintext = await Fs.readFile(srcFile);
+                const encrypted = await Fs.readFile(destFile);
 
                 // Pretty naiive check but meh I'm just a doggo
                 // How do you check if something looks encrypted?
@@ -189,19 +172,19 @@ module.exports = class DoggoAdapterTestSuite {
 
                 await DoggoCore.api.decrypt(destFile, decryptPath, 'test');
 
-                const decrypted = await promiseReadFile(decryptPath);
+                const decrypted = await Fs.readFile(decryptPath);
                 expect(decrypted.toString('utf8')).to.equal(plaintext.toString('utf8'));
             });
 
             it('exports keys', async (done) => {
 
                 // pub
-                const poPublicKey = await promiseReadFile(__dirname + '/secures/keys/pubOnly.pub');
+                const poPublicKey = await Fs.readFile(__dirname + '/secures/keys/pubOnly.pub');
 
                 const pubExportKeyPath = `${__dirname}/secures/keys/test.pub`;
                 await DoggoCore.api.exportKey(PUB_ONLY.fingerprint, 'pub', pubExportKeyPath);
 
-                const exportedPublicKey = await promiseReadFile(pubExportKeyPath);
+                const exportedPublicKey = await Fs.readFile(pubExportKeyPath);
 
                 expect(exportedPublicKey.toString('utf8')).to.equal(poPublicKey.toString('utf8'));
 
@@ -209,7 +192,7 @@ module.exports = class DoggoAdapterTestSuite {
                 const secExportKeyPath = `${__dirname}/secures/keys/test.sec`;
                 await DoggoCore.api.exportKey(SEC_ONLY.identifier, 'sec', secExportKeyPath, 'test');
 
-                const exportedSecretKey = await promiseReadFile(secExportKeyPath);
+                const exportedSecretKey = await Fs.readFile(secExportKeyPath);
 
                 // Secret keys are symmetrically encrypted by gpg when exported for protection.
                 if (DoggoCore.adapter.name === 'gpg') {
@@ -270,8 +253,8 @@ module.exports = class DoggoAdapterTestSuite {
 
 internals.safeUnlink = async (unlinkPath) => {
 
-    if (await Util.promisify(Fs.exists)(unlinkPath)) {
-        await Util.promisify(Fs.unlink)(unlinkPath);
+    if (await Fs.exists(unlinkPath)) {
+        await Fs.unlink(unlinkPath);
     }
 };
 
