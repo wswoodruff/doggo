@@ -12,23 +12,56 @@ const { promises: Fs } = require('fs');
 // 'adapter-test-suite' are lining up properly.
 const TestKeyInfo = require('./test-key-info');
 
-const internals = {
-    getKeyValues: async () => {
+const internals = {};
 
-        const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = TestKeyInfo;
+internals.getKeyValues = async () => {
 
-        const pubAndSecPubKey = await Fs.readFile(PUB_SEC.keyPaths.pub);
-        const pubAndSecSecKey = await Fs.readFile(PUB_SEC.keyPaths.sec);
-        const pubOnlyPubKey = await Fs.readFile(PUB_ONLY.keyPaths.pub);
-        const secOnlySecKey = await Fs.readFile(SEC_ONLY.keyPaths.sec);
+    const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = TestKeyInfo;
 
-        return {
-            pubAndSecPubKey: pubAndSecPubKey.toString('utf8'),
-            pubAndSecSecKey: pubAndSecSecKey.toString('utf8'),
-            pubOnlyPubKey: pubOnlyPubKey.toString('utf8'),
-            secOnlySecKey: secOnlySecKey.toString('utf8')
-        };
-    }
+    const pubAndSecPubKey = await Fs.readFile(PUB_SEC.keyPaths.pub);
+    const pubAndSecSecKey = await Fs.readFile(PUB_SEC.keyPaths.sec);
+    const pubOnlyPubKey = await Fs.readFile(PUB_ONLY.keyPaths.pub);
+    const secOnlySecKey = await Fs.readFile(SEC_ONLY.keyPaths.sec);
+
+    return {
+        pubAndSecPubKey: pubAndSecPubKey.toString('utf8'),
+        pubAndSecSecKey: pubAndSecSecKey.toString('utf8'),
+        pubOnlyPubKey: pubOnlyPubKey.toString('utf8'),
+        secOnlySecKey: secOnlySecKey.toString('utf8')
+    };
+};
+
+internals.getKeyListInfo = ({ fingerprint, identifier }) => ({
+    fingerprint,
+    identifier
+});
+
+internals.lower = (str) => str.toLowerCase();
+
+internals.searchForKeys = (search, type) => {
+
+    const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = TestKeyInfo;
+
+    const { lower } = internals;
+
+    return [
+        PUB_SEC,
+        SEC_ONLY,
+        PUB_ONLY
+    ]
+        .filter((keyInfo) => {
+
+            const {
+                fingerprint,
+                identifier
+            } = keyInfo;
+
+            return lower(fingerprint).includes(lower(search)) || lower(identifier).includes(lower(search));
+        })
+        .map((keyInfo) => {
+
+            //
+        });
 };
 
 module.exports = {
@@ -37,40 +70,57 @@ module.exports = {
     deleteKeys: () => null,
     importKey: async (str, type) => {
 
+        const { getKeyValues, getKeyListInfo } = internals;
+
         const {
             pubAndSecPubKey,
             pubAndSecSecKey,
             pubOnlyPubKey,
             secOnlySecKey
-        } = await internals.getKeyValues();
+        } = await getKeyValues();
 
         const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = TestKeyInfo;
 
-        let output = '';
+        let key = {};
 
         switch (str) {
             case pubAndSecPubKey:
-                output = PUB_SEC.identifier;
+                key = PUB_SEC;
                 break;
             case pubAndSecSecKey:
-                output = PUB_SEC.identifier;
+                key = PUB_SEC;
                 break;
             case pubOnlyPubKey:
-                output = PUB_ONLY.identifier;
+                key = PUB_ONLY;
                 break;
             case secOnlySecKey:
-                output = SEC_ONLY.identifier;
+                key = SEC_ONLY;
                 break;
             default:
-                throw new Error('Developer error');
+                return { output: null, error: new Error('Developer error') };
         }
 
-        return { output };
+        return { output: getKeyListInfo(key), error: null };
     },
     exportKey: () => null,
     listKeys: (search, type) => {
 
-        //
+        const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = TestKeyInfo;
+
+        [PUB_SEC, SEC_ONLY, PUB_ONLY]
+            .filter((keyInfo) => {
+
+                const {
+                    fingerprint,
+                    identifier
+                } = keyInfo;
+
+                return fingerprint.includes(search) || identifier.includes(search);
+            })
+            .find(() => {
+
+                //
+            });
     },
     encrypt: () => null,
     decrypt: () => null,

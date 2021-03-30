@@ -14,7 +14,7 @@
     "@hapi/eslint-config-hapi": "^13.0.2",
     "@hapi/eslint-plugin-hapi": "^4.3.6",
     "dedent": "^0.7.0",
-    "joi": "17.2.1"
+    "joi": "^17.4.0"
   },
   "devDependencies": {
     "@hapi/code": "8.0.2",
