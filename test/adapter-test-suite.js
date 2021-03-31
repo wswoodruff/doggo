@@ -121,6 +121,8 @@ module.exports = class DoggoAdapterTestSuite {
 
             it('lists all keys for type "all"', async () => {
 
+                const { find } = internals;
+
                 const keys = await Doggo.api.listKeys({ type: 'all' });
 
                 // Assert output matches API schema
@@ -129,12 +131,14 @@ module.exports = class DoggoAdapterTestSuite {
                 // Might have other keys on the keychain
                 expect(keys.length).to.be.at.least(3);
 
-                expect(keys.find(({ fingerprint }) => fingerprint === PUB_SEC.fingerprint)).to.exist();
-                expect(keys.find(({ fingerprint }) => fingerprint === PUB_ONLY.fingerprint)).to.exist();
-                expect(keys.find(({ fingerprint }) => fingerprint === SEC_ONLY.fingerprint)).to.exist();
+                expect(find({ arr: keys, compareWith: PUB_SEC, key: 'fingerprint' })).to.exist();
+                expect(find({ arr: keys, compareWith: PUB_ONLY, key: 'fingerprint' })).to.exist();
+                expect(find({ arr: keys, compareWith: SEC_ONLY, key: 'fingerprint' })).to.exist();
             });
 
             it('lists all keys given no options', async () => {
+
+                const { find } = internals;
 
                 const keys = await Doggo.api.listKeys();
 
@@ -144,9 +148,11 @@ module.exports = class DoggoAdapterTestSuite {
                 // Might have other keys on the keychain
                 expect(keys.length).to.be.at.least(3);
 
-                expect(keys.find(({ fingerprint }) => fingerprint === PUB_SEC.fingerprint)).to.exist();
-                expect(keys.find(({ fingerprint }) => fingerprint === PUB_ONLY.fingerprint)).to.exist();
-                expect(keys.find(({ fingerprint }) => fingerprint === SEC_ONLY.fingerprint)).to.exist();
+                expect(find({ arr: keys, compareWith: PUB_SEC, key: 'fingerprint' })).to.exist();
+                expect(find({ arr: keys, compareWith: PUB_ONLY, key: 'fingerprint' })).to.exist();
+                expect(find({ arr: keys, compareWith: SEC_ONLY, key: 'fingerprint' })).to.exist();
+                // A quick test for the util's benefit
+                expect(find({ arr: keys, compareWith: { fingerprint: 'pups-r-gonna-be-pups' }, key: 'fingerprint' })).to.not.exist();
             });
 
             // TODO
@@ -157,6 +163,8 @@ module.exports = class DoggoAdapterTestSuite {
 
             it('lists keys by type', async () => {
 
+                const { find } = internals;
+
                 const pub = await Doggo.api.listKeys({ type: 'pub' });
                 const sec = await Doggo.api.listKeys({ type: 'sec' });
 
@@ -164,35 +172,44 @@ module.exports = class DoggoAdapterTestSuite {
                 expect(() => Joi.assert(pub, Schemas.api.listKeys)).to.not.throw();
                 expect(() => Joi.assert(sec, Schemas.api.listKeys)).to.not.throw();
 
-                expect(pub.find(({ fingerprint }) => fingerprint === PUB_SEC.fingerprint)).to.exist();
+                expect(find({ arr: pub, compareWith: PUB_SEC, key: 'fingerprint' })).to.exist();
                 // Public keys can always be derived from secret keys
-                expect(pub.find(({ fingerprint }) => fingerprint === SEC_ONLY.fingerprint)).to.exist();
-                expect(pub.find(({ fingerprint }) => fingerprint === PUB_ONLY.fingerprint)).to.exist();
+                expect(find({ arr: pub, compareWith: SEC_ONLY, key: 'fingerprint' })).to.exist();
+                expect(find({ arr: pub, compareWith: PUB_ONLY, key: 'fingerprint' })).to.exist();
 
-                expect(sec.find(({ fingerprint }) => fingerprint === PUB_SEC.fingerprint)).to.exist();
-                expect(sec.find(({ fingerprint }) => fingerprint === SEC_ONLY.fingerprint)).to.exist();
+                expect(find({ arr: sec, compareWith: PUB_SEC, key: 'fingerprint' })).to.exist();
+                expect(find({ arr: sec, compareWith: SEC_ONLY, key: 'fingerprint' })).to.exist();
                 // NOTE: to.not.exist for the PUB_ONLY key
-                expect(sec.find(({ fingerprint }) => fingerprint === PUB_ONLY.fingerprint)).to.not.exist();
+                expect(find({ arr: sec, compareWith: PUB_ONLY, key: 'fingerprint' })).to.not.exist();
             });
 
-            // it('finds keys by fingerprint by using "search"', async () => {
+            it('finds keys by fingerprint using "search"', async () => {
 
-            //     const keys = await Doggo.api.listKeys({ search: PUB_SEC.fingerprint });
+                const { find } = internals;
 
-            //     expect(() => Joi.assert(pubSecKeyInfo, Schemas.api.listKeys)).to.not.throw();
+                const keys = await Doggo.api.listKeys({ search: PUB_SEC.fingerprint });
 
-            //     const poPubExists = await Doggo.api.keyExists(PUB_ONLY.identifier, pub);
-            //     const poSecexists = await Doggo.api.keyExists(PUB_ONLY.identifier, sec);
+                expect(() => Joi.assert(keys, Schemas.api.listKeys)).to.not.throw();
 
-            //     const psPubExists = await Doggo.api.keyExists(PUB_SEC.identifier, pub);
-            //     const psSecExists = await Doggo.api.keyExists(PUB_SEC.identifier, sec);
+                expect(find({ arr: keys, compareWith: PUB_SEC, key: 'fingerprint' })).to.exist();
+                // NOTE: to.not.exist()
+                expect(find({ arr: keys, compareWith: SEC_ONLY, key: 'fingerprint' })).to.not.exist();
+                expect(find({ arr: keys, compareWith: PUB_ONLY, key: 'fingerprint' })).to.not.exist();
 
-            //     expect(poPubExists).to.equal(true);
-            //     expect(poSecexists).to.equal(false);
+                //
 
-            //     expect(psPubExists).to.equal(true);
-            //     expect(psSecExists).to.equal(true);
-            // });
+                // const poPubExists = await Doggo.api.keyExists(PUB_ONLY.identifier, pub);
+                // const poSecexists = await Doggo.api.keyExists(PUB_ONLY.identifier, sec);
+
+                // const psPubExists = await Doggo.api.keyExists(PUB_SEC.identifier, pub);
+                // const psSecExists = await Doggo.api.keyExists(PUB_SEC.identifier, sec);
+
+                // expect(poPubExists).to.equal(true);
+                // expect(poSecexists).to.equal(false);
+
+                // expect(psPubExists).to.equal(true);
+                // expect(psSecExists).to.equal(true);
+            });
 
             // it('encrypts and decrypts text for a user', async () => {
 
@@ -307,6 +324,8 @@ internals.safeUnlink = async (unlinkPath) => {
 internals.genKeys = async (Doggo, ...args) => await Doggo.api.genKeys(...args);
 
 internals.first = (arr) => arr[0];
+
+internals.find = ({ arr, compareWith, key }) => arr.find((obj) => obj[key] === compareWith[key]);
 
 internals.randomNumberNoDot = () => String(Math.random()).replace('.', '');
 
