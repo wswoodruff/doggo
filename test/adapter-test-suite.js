@@ -157,22 +157,22 @@ module.exports = class DoggoAdapterTestSuite {
 
             it('lists keys by type', async () => {
 
-                const pubKeys = await Doggo.api.listKeys({ type: 'pub' });
-                const secKeys = await Doggo.api.listKeys({ type: 'sec' });
+                const pub = await Doggo.api.listKeys({ type: 'pub' });
+                const sec = await Doggo.api.listKeys({ type: 'sec' });
 
                 // Assert output matches API schema
-                expect(() => Joi.assert(pubKeys, Schemas.api.listKeys)).to.not.throw();
-                expect(() => Joi.assert(secKeys, Schemas.api.listKeys)).to.not.throw();
+                expect(() => Joi.assert(pub, Schemas.api.listKeys)).to.not.throw();
+                expect(() => Joi.assert(sec, Schemas.api.listKeys)).to.not.throw();
 
-                expect(pubKeys.find(({ fingerprint }) => fingerprint === PUB_SEC.fingerprint)).to.exist();
+                expect(pub.find(({ fingerprint }) => fingerprint === PUB_SEC.fingerprint)).to.exist();
                 // Public keys can always be derived from secret keys
-                expect(pubKeys.find(({ fingerprint }) => fingerprint === SEC_ONLY.fingerprint)).to.exist();
-                expect(pubKeys.find(({ fingerprint }) => fingerprint === PUB_ONLY.fingerprint)).to.exist();
+                expect(pub.find(({ fingerprint }) => fingerprint === SEC_ONLY.fingerprint)).to.exist();
+                expect(pub.find(({ fingerprint }) => fingerprint === PUB_ONLY.fingerprint)).to.exist();
 
-                expect(secKeys.find(({ fingerprint }) => fingerprint === PUB_SEC.fingerprint)).to.exist();
-                expect(secKeys.find(({ fingerprint }) => fingerprint === SEC_ONLY.fingerprint)).to.exist();
+                expect(sec.find(({ fingerprint }) => fingerprint === PUB_SEC.fingerprint)).to.exist();
+                expect(sec.find(({ fingerprint }) => fingerprint === SEC_ONLY.fingerprint)).to.exist();
                 // NOTE: to.not.exist for the PUB_ONLY key
-                expect(secKeys.find(({ fingerprint }) => fingerprint === PUB_ONLY.fingerprint)).to.not.exist();
+                expect(sec.find(({ fingerprint }) => fingerprint === PUB_ONLY.fingerprint)).to.not.exist();
             });
 
             // it('finds keys by fingerprint by using "search"', async () => {
