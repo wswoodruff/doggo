@@ -142,12 +142,13 @@ module.exports = class DoggoAdapterTestSuite {
                 expect(() => Joi.assert(secKeys, Schemas.keysInfo)).to.not.throw();
 
                 expect(pubKeys.find(({ fingerprint }) => fingerprint === PUB_SEC.fingerprint)).to.exist();
-                expect(pubKeys.find(({ fingerprint }) => fingerprint === PUB_ONLY.fingerprint)).to.exist();
+                // Public keys can always be derived from secret keys
                 expect(pubKeys.find(({ fingerprint }) => fingerprint === SEC_ONLY.fingerprint)).to.exist();
+                expect(pubKeys.find(({ fingerprint }) => fingerprint === PUB_ONLY.fingerprint)).to.exist();
 
                 expect(secKeys.find(({ fingerprint }) => fingerprint === PUB_SEC.fingerprint)).to.exist();
                 expect(secKeys.find(({ fingerprint }) => fingerprint === SEC_ONLY.fingerprint)).to.exist();
-                // to.not.exist for the PUB_ONLY key
+                // NOTE: to.not.exist for the PUB_ONLY key
                 expect(secKeys.find(({ fingerprint }) => fingerprint === PUB_ONLY.fingerprint)).to.not.exist();
             });
 
