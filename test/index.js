@@ -15,10 +15,8 @@ const { expect } = Code;
 
 const TEST_UTILS = {
     expect,
-    lab: {
-        describe,
-        it
-    }
+    describe,
+    it
 };
 
 const getBadAdapter = () => {

@@ -17,11 +17,9 @@ const internals = {};
 
 internals.testUtilsSchema = Joi.object({
     expect: Joi.func().required(),
-    lab: Joi.object({
-        describe: Joi.func().required(),
-        it: Joi.func().required()
-    }).required()
-});
+    describe: Joi.func().required(),
+    it: Joi.func().required()
+}).required();
 
 module.exports = class DoggoAdapterTestSuite {
 
@@ -42,7 +40,7 @@ module.exports = class DoggoAdapterTestSuite {
     genAndRunTests() {
 
         const { name } = this.adapter;
-        const { expect, lab: { describe, it } } = this.testUtils;
+        const { expect, describe, it } = this.testUtils;
         const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = TestKeyInfo;
 
         const Doggo = this.doggo;
