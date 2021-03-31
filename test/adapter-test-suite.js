@@ -30,7 +30,7 @@ module.exports = class DoggoAdapterTestSuite {
         Joi.assert(adapter, Schemas.adapter, 'Invalid adapter passed');
 
         this.adapter = adapter;
-        this.doggoCore = require('../lib')(adapter);
+        this.doggo = require('../lib')(adapter);
 
         const { testUtilsSchema } = internals;
 
@@ -45,232 +45,228 @@ module.exports = class DoggoAdapterTestSuite {
         const { expect, lab: { describe, it } } = this.testUtils;
         const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = TestKeyInfo;
 
-        const DoggoCore = this.doggoCore;
+        const Doggo = this.doggo;
 
-        describe(`doggo adapter "${name}" tests:`, () => {
+        describe(`DoggoAdapterTestSuite: doggo adapter "${name}" tests:`, () => {
 
             it('imports valid keys', async () => {
 
-                const IS_GPG = DoggoCore.api.name === 'gpg';
+                const IS_GPG = Doggo.api.name === 'gpg';
 
-                await Fs.readFile(SEC_ONLY.keyPaths.sec)
+                const getFile = async (path) => {
 
-                const pubAndSecSecKeyImportRes = await DoggoCore.api.importKey({
-                    key: IS_GPG ? PUB_SEC.keyPaths.sec : (await Fs.readFile(PUB_SEC.keyPaths.sec)).toString('utf8'),
+                    const file = await Fs.readFile(path);
+                    return file.toString('utf8');
+                };
+
+                const pubAndSecSecKeyImportRes = await Doggo.api.importKey({
+                    key: IS_GPG ? PUB_SEC.keyPaths.sec : await getFile(PUB_SEC.keyPaths.sec),
                     type: 'sec',
                     password: PUB_SEC.password
                 });
-                const pubAndSecPubKeyImportRes = await DoggoCore.api.importKey({
-                    key: IS_GPG ? PUB_SEC.keyPaths.pub : (await Fs.readFile(PUB_SEC.keyPaths.pub)).toString('utf8'),
+                const pubAndSecPubKeyImportRes = await Doggo.api.importKey({
+                    key: IS_GPG ? PUB_SEC.keyPaths.pub : await getFile(PUB_SEC.keyPaths.pub),
                     type: 'pub'
                 });
-                const secOnlySecKeyImportRes = await DoggoCore.api.importKey({
-                    key: IS_GPG ? SEC_ONLY.keyPaths.sec : (await Fs.readFile(SEC_ONLY.keyPaths.sec)).toString('utf8'),
+                const secOnlySecKeyImportRes = await Doggo.api.importKey({
+                    key: IS_GPG ? SEC_ONLY.keyPaths.sec : await getFile(SEC_ONLY.keyPaths.sec),
                     type: 'sec',
                     password: SEC_ONLY.password
                 });
-                const pubOnlyPubKeyImportRes = await DoggoCore.api.importKey({
-                    key: IS_GPG ? PUB_ONLY.keyPaths.pub : (await Fs.readFile(PUB_ONLY.keyPaths.pub)).toString('utf8'),
+                const pubOnlyPubKeyImportRes = await Doggo.api.importKey({
+                    key: IS_GPG ? PUB_ONLY.keyPaths.pub : await getFile(PUB_ONLY.keyPaths.pub),
                     type: 'pub'
                 });
 
                 // PUB_SEC pub
-                expect(() => Joi.assert(pubAndSecSecKeyImportRes, Schemas.keyInfo)).to.not.throw();
+                expect(() => Joi.assert(pubAndSecSecKeyImportRes, Schemas.keysInfo)).to.not.throw();
                 expect(pubAndSecSecKeyImportRes.fingerprint).to.equal(PUB_SEC.fingerprint);
                 expect(pubAndSecSecKeyImportRes.identifier).to.equal(PUB_SEC.identifier);
 
                 // PUB_SEC sec
-                expect(() => Joi.assert(pubAndSecPubKeyImportRes, Schemas.keyInfo)).to.not.throw();
+                expect(() => Joi.assert(pubAndSecPubKeyImportRes, Schemas.keysInfo)).to.not.throw();
                 expect(pubAndSecPubKeyImportRes.fingerprint).to.equal(PUB_SEC.fingerprint);
                 expect(pubAndSecPubKeyImportRes.identifier).to.equal(PUB_SEC.identifier);
 
                 // SEC_ONLY
-                expect(() => Joi.assert(secOnlySecKeyImportRes, Schemas.keyInfo)).to.not.throw();
+                expect(() => Joi.assert(secOnlySecKeyImportRes, Schemas.keysInfo)).to.not.throw();
                 expect(secOnlySecKeyImportRes.fingerprint).to.equal(SEC_ONLY.fingerprint);
                 expect(secOnlySecKeyImportRes.identifier).to.equal(SEC_ONLY.identifier);
 
                 // PUB_ONLY
-                expect(() => Joi.assert(pubOnlyPubKeyImportRes, Schemas.keyInfo)).to.not.throw();
+                expect(() => Joi.assert(pubOnlyPubKeyImportRes, Schemas.keysInfo)).to.not.throw();
                 expect(pubOnlyPubKeyImportRes.fingerprint).to.equal(PUB_ONLY.fingerprint);
                 expect(pubOnlyPubKeyImportRes.identifier).to.equal(PUB_ONLY.identifier);
 
                 // Wait a couple secs for gpg to get its act together.
                 // Having issues with these imported keys not showing up immediately in lists
-                if (DoggoCore.api.name === 'gpg') {
+                if (Doggo.api.name === 'gpg') {
                     return new Promise((res) => setTimeout(() => res(), 2000));
                 }
             });
 
-            // it('lists keys by type', async () => {
+            it('lists all keys for type "all"', async () => {
 
-            //     // const { output: pubKeys } = await DoggoCore.api.listKeys({ type: 'pub' });
-            //     // const secKeys = await DoggoCore.api.listKeys({ type: 'sec' });
-            //     // const allKeys = await DoggoCore.api.listKeys();
+                const allKeys = await Doggo.api.listKeys({ type: 'all' });
+
+                expect(() => Joi.assert(allKeys, Schemas.keysInfo)).to.not.throw();
+
+                // Might have other keys on the keychain
+                expect(allKeys.length).to.be.at.least(3);
+
+                expect(allKeys.find(({ fingerprint }) => fingerprint === PUB_SEC.fingerprint)).to.exist();
+                expect(allKeys.find(({ fingerprint }) => fingerprint === PUB_ONLY.fingerprint)).to.exist();
+                expect(allKeys.find(({ fingerprint }) => fingerprint === SEC_ONLY.fingerprint)).to.exist();
+            });
+
+            it('lists all keys given no options', async () => {
+
+                const noOptions = await Doggo.api.listKeys();
+
+                expect(() => Joi.assert(noOptions, Schemas.keysInfo)).to.not.throw();
+
+                // Might have other keys on the keychain
+                expect(noOptions.length).to.be.at.least(3);
+
+                expect(noOptions.find(({ fingerprint }) => fingerprint === PUB_SEC.fingerprint)).to.exist();
+                expect(noOptions.find(({ fingerprint }) => fingerprint === PUB_ONLY.fingerprint)).to.exist();
+                expect(noOptions.find(({ fingerprint }) => fingerprint === SEC_ONLY.fingerprint)).to.exist();
+            });
+
+            it('lists keys by type', async () => {
+
+                const pubKeys = await Doggo.api.listKeys({ type: 'pub' });
+                const secKeys = await Doggo.api.listKeys({ type: 'sec' });
+
+                expect(() => Joi.assert(pubKeys, Schemas.keysInfo)).to.not.throw();
+                expect(() => Joi.assert(secKeys, Schemas.keysInfo)).to.not.throw();
+
+                expect(pubKeys.find(({ fingerprint }) => fingerprint === PUB_SEC.fingerprint)).to.exist();
+                expect(pubKeys.find(({ fingerprint }) => fingerprint === PUB_ONLY.fingerprint)).to.exist();
+                expect(pubKeys.find(({ fingerprint }) => fingerprint === SEC_ONLY.fingerprint)).to.exist();
+
+                expect(secKeys.find(({ fingerprint }) => fingerprint === PUB_SEC.fingerprint)).to.exist();
+                expect(secKeys.find(({ fingerprint }) => fingerprint === SEC_ONLY.fingerprint)).to.exist();
+                // to.not.exist for the PUB_ONLY key
+                expect(secKeys.find(({ fingerprint }) => fingerprint === PUB_ONLY.fingerprint)).to.not.exist();
+            });
+
+            // it('checks if a key exists for a keyIdentifier', async () => {
+
+            //     const { pub, sec } = await Doggo.api.listKeys();
+
+            //     const poPubExists = await Doggo.api.keyExists(PUB_ONLY.identifier, pub);
+            //     const poSecexists = await Doggo.api.keyExists(PUB_ONLY.identifier, sec);
+
+            //     const psPubExists = await Doggo.api.keyExists(PUB_SEC.identifier, pub);
+            //     const psSecExists = await Doggo.api.keyExists(PUB_SEC.identifier, sec);
+
+            //     expect(poPubExists).to.equal(true);
+            //     expect(poSecexists).to.equal(false);
+
+            //     expect(psPubExists).to.equal(true);
+            //     expect(psSecExists).to.equal(true);
             // });
 
-            it('lists keys', async () => {
+            // it('encrypts and decrypts text for a user', async () => {
 
-                const pubKeys = await DoggoCore.api.listKeys({ type: 'pub' });
-                const secKeys = await DoggoCore.api.listKeys({ type: 'sec' });
-                const allKeys = await DoggoCore.api.listKeys({ type: 'all' });
-                const noOptions = await DoggoCore.api.listKeys();
+            //     const srcFile = __dirname + '/secures/plaintext.txt';
+            //     const destFile = __dirname + '/secures/plaintext.gpg';
+            //     const decryptPath = __dirname + '/secures/plaintext.gpg.decrypt';
 
-                // TODO getfirst via await DoggoCore.api.listKeys({ key: someFingerprint, first: true });
+            //     await Doggo.api.encrypt(PUB_SEC.identifier, srcFile, destFile);
 
-                expect(() => Joi.assert(pubKeys, Joi.array().items(Schemas.keys))).to.not.throw();
-                expect(() => Joi.assert(secKeys, Joi.array().items(Schemas.keys))).to.not.throw();
-                expect(() => Joi.assert(allKeys, Joi.array().items(Schemas.keys))).to.not.throw();
-                expect(() => Joi.assert(noOptions, Joi.array().items(Schemas.keys))).to.not.throw();
+            //     const plaintext = await Fs.readFile(srcFile);
+            //     const encrypted = await Fs.readFile(destFile);
 
-                const { pub, sec } = allKeys;
+            //     // Pretty naiive check but meh I'm just a doggo
+            //     // How do you check if something looks encrypted?
+            //     const encryptedToString = encrypted.toString('utf8');
 
-                expect(pub).to.equal(pubKeys.pub);
-                expect(sec).to.equal(secKeys);
+            //     expect(encryptedToString).to.not.equal(plaintext.toString('utf8'));
 
-                // Finding a key
+            //     if (Doggo.adapter.name === 'gpg') {
+            //         expect(encryptedToString).to.include('-----BEGIN PGP MESSAGE-----');
+            //         expect(encryptedToString).to.include('-----END PGP MESSAGE-----');
+            //     }
 
-                const pubKeysSearchForPubOnly = await DoggoCore.api.listKeys(PUB_ONLY.identifier, 'pub');
-                const secKeysSearchForPubSec = await DoggoCore.api.listKeys(PUB_SEC.identifier, 'sec');
+            //     await Doggo.api.decrypt(destFile, decryptPath, 'test');
 
-                const pubKeysForPubOnly = DoggoCore.api.utils.keysForIdentifier(PUB_ONLY.identifier, pubKeysSearchForPubOnly);
-                const secKeysForPubSec = DoggoCore.api.utils.keysForIdentifier(PUB_SEC.identifier, secKeysSearchForPubSec);
+            //     const decrypted = await Fs.readFile(decryptPath);
+            //     expect(decrypted.toString('utf8')).to.equal(plaintext.toString('utf8'));
+            // });
 
-                const pubOnlyPubKey = DoggoCore.api.utils.firstKeyFromList(PUB_ONLY.identifier, pubKeysSearchForPubOnly);
-                const pubSecSecKey = DoggoCore.api.utils.firstKeyFromList(PUB_SEC.identifier, secKeysSearchForPubSec);
+            // it('exports keys', async (done) => {
 
-                expect(pubKeysForPubOnly.length).to.equal(1);
-                expect(pubKeysForPubOnly[0]).to.equal(pubOnlyPubKey);
-                expect(secKeysForPubSec.length).to.equal(1);
-                expect(secKeysForPubSec[0]).to.equal(pubSecSecKey);
+            //     // pub
+            //     const poPublicKey = await Fs.readFile(__dirname + '/secures/keys/pubOnly.pub');
 
-                expect(pubKeys).to.include(pubOnlyPubKey);
-                expect(secKeys).to.include(pubSecSecKey);
+            //     const pubExportKeyPath = `${__dirname}/secures/keys/test.pub`;
+            //     await Doggo.api.exportKey(PUB_ONLY.fingerprint, 'pub', pubExportKeyPath);
 
-                //
+            //     const exportedPublicKey = await Fs.readFile(pubExportKeyPath);
 
-                const firstKeyForPubOnly = DoggoCore.api.utils.firstKeyForIdentifier(PUB_ONLY.identifier, pubKeysSearchForPubOnly);
-                const firstKeyForPubSec = DoggoCore.api.utils.firstKeyForIdentifier(PUB_SEC.identifier, secKeysSearchForPubSec);
+            //     expect(exportedPublicKey.toString('utf8')).to.equal(poPublicKey.toString('utf8'));
 
-                expect(firstKeyForPubOnly).to.equal(pubOnlyPubKey);
-                expect(firstKeyForPubSec).to.equal(pubSecSecKey);
-            });
+            //     // sec
+            //     const secExportKeyPath = `${__dirname}/secures/keys/test.sec`;
+            //     await Doggo.api.exportKey(SEC_ONLY.identifier, 'sec', secExportKeyPath, 'test');
 
-            it('checks if a key exists for a keyIdentifier', async () => {
+            //     const exportedSecretKey = await Fs.readFile(secExportKeyPath);
 
-                const { pub, sec } = await DoggoCore.api.listKeys();
+            //     // Secret keys are symmetrically encrypted by gpg when exported for protection.
+            //     if (Doggo.adapter.name === 'gpg') {
+            //         expect(exportedSecretKey.toString('utf8')).to.include('-----BEGIN PGP PRIVATE KEY BLOCK-----');
+            //         expect(exportedSecretKey.toString('utf8')).to.include('-----END PGP PRIVATE KEY BLOCK-----');
+            //     }
+            // });
 
-                const poPubExists = await DoggoCore.api.keyExists(PUB_ONLY.identifier, pub);
-                const poSecexists = await DoggoCore.api.keyExists(PUB_ONLY.identifier, sec);
+            // it('deletes keys', async () => {
 
-                const psPubExists = await DoggoCore.api.keyExists(PUB_SEC.identifier, pub);
-                const psSecExists = await DoggoCore.api.keyExists(PUB_SEC.identifier, sec);
+            //     const { pub: beginPub, sec: beginSec } = await Doggo.api.listKeys();
 
-                expect(poPubExists).to.equal(true);
-                expect(poSecexists).to.equal(false);
+            //     const beginPubOnlyPubKeyExists = Doggo.api.keyExists(PUB_ONLY.fingerprint, beginPub);
+            //     const beginPubOnlySecKeyExists = Doggo.api.keyExists(PUB_ONLY.fingerprint, beginSec);
+            //     const beginSecOnlyPubKeyExists = Doggo.api.keyExists(SEC_ONLY.fingerprint, beginPub);
+            //     const beginSecOnlySecKeyExists = Doggo.api.keyExists(SEC_ONLY.fingerprint, beginSec);
+            //     const beginPubSecPubKeyExists = Doggo.api.keyExists(PUB_SEC.fingerprint, beginPub);
+            //     const beginPubSecSecKeyExists = Doggo.api.keyExists(PUB_SEC.fingerprint, beginSec);
 
-                expect(psPubExists).to.equal(true);
-                expect(psSecExists).to.equal(true);
-            });
+            //     expect(beginPubOnlyPubKeyExists).to.equal(true);
+            //     expect(beginPubOnlySecKeyExists).to.equal(false);
+            //     // Importing a secret key automatically imports the public key
+            //     expect(beginSecOnlyPubKeyExists).to.equal(true);
+            //     expect(beginSecOnlySecKeyExists).to.equal(true);
+            //     expect(beginPubSecPubKeyExists).to.equal(true);
+            //     expect(beginPubSecSecKeyExists).to.equal(true);
 
-            it('encrypts and decrypts text for a user', async () => {
+            //     // Delete 'em
 
-                const srcFile = __dirname + '/secures/plaintext.txt';
-                const destFile = __dirname + '/secures/plaintext.gpg';
-                const decryptPath = __dirname + '/secures/plaintext.gpg.decrypt';
+            //     await Doggo.api.deleteKeys(PUB_ONLY.fingerprint, 'pub');
+            //     await Doggo.api.deleteKeys(SEC_ONLY.fingerprint, 'all');
 
-                await DoggoCore.api.encrypt(PUB_SEC.identifier, srcFile, destFile);
+            //     // Trying to delete a public key before a secret key throws an error in gpg
+            //     await Doggo.api.deleteKeys(PUB_SEC.fingerprint, 'sec');
+            //     await Doggo.api.deleteKeys(PUB_SEC.fingerprint, 'pub');
 
-                const plaintext = await Fs.readFile(srcFile);
-                const encrypted = await Fs.readFile(destFile);
+            //     // Check lists
 
-                // Pretty naiive check but meh I'm just a doggo
-                // How do you check if something looks encrypted?
-                const encryptedToString = encrypted.toString('utf8');
+            //     const { pub: afterDeletePub, sec: afterDeleteSec } = await Doggo.api.listKeys();
 
-                expect(encryptedToString).to.not.equal(plaintext.toString('utf8'));
+            //     const afterDeletePubOnlyPubKeyExists = Doggo.api.keyExists(PUB_ONLY.fingerprint, afterDeletePub);
+            //     const afterDeletePubOnlySecKeyExists = Doggo.api.keyExists(PUB_ONLY.fingerprint, afterDeleteSec);
+            //     const afterDeleteSecOnlyPubKeyExists = Doggo.api.keyExists(SEC_ONLY.fingerprint, afterDeletePub);
+            //     const afterDeleteSecOnlySecKeyExists = Doggo.api.keyExists(SEC_ONLY.fingerprint, afterDeleteSec);
+            //     const afterDeletePubSecPubKeyExists = Doggo.api.keyExists(PUB_SEC.fingerprint, afterDeletePub);
+            //     const afterDeletePubSecSecKeyExists = Doggo.api.keyExists(PUB_SEC.fingerprint, afterDeleteSec);
 
-                if (DoggoCore.adapter.name === 'gpg') {
-                    expect(encryptedToString).to.include('-----BEGIN PGP MESSAGE-----');
-                    expect(encryptedToString).to.include('-----END PGP MESSAGE-----');
-                }
-
-                await DoggoCore.api.decrypt(destFile, decryptPath, 'test');
-
-                const decrypted = await Fs.readFile(decryptPath);
-                expect(decrypted.toString('utf8')).to.equal(plaintext.toString('utf8'));
-            });
-
-            it('exports keys', async (done) => {
-
-                // pub
-                const poPublicKey = await Fs.readFile(__dirname + '/secures/keys/pubOnly.pub');
-
-                const pubExportKeyPath = `${__dirname}/secures/keys/test.pub`;
-                await DoggoCore.api.exportKey(PUB_ONLY.fingerprint, 'pub', pubExportKeyPath);
-
-                const exportedPublicKey = await Fs.readFile(pubExportKeyPath);
-
-                expect(exportedPublicKey.toString('utf8')).to.equal(poPublicKey.toString('utf8'));
-
-                // sec
-                const secExportKeyPath = `${__dirname}/secures/keys/test.sec`;
-                await DoggoCore.api.exportKey(SEC_ONLY.identifier, 'sec', secExportKeyPath, 'test');
-
-                const exportedSecretKey = await Fs.readFile(secExportKeyPath);
-
-                // Secret keys are symmetrically encrypted by gpg when exported for protection.
-                if (DoggoCore.adapter.name === 'gpg') {
-                    expect(exportedSecretKey.toString('utf8')).to.include('-----BEGIN PGP PRIVATE KEY BLOCK-----');
-                    expect(exportedSecretKey.toString('utf8')).to.include('-----END PGP PRIVATE KEY BLOCK-----');
-                }
-            });
-
-            it('deletes keys', async () => {
-
-                const { pub: beginPub, sec: beginSec } = await DoggoCore.api.listKeys();
-
-                const beginPubOnlyPubKeyExists = DoggoCore.api.keyExists(PUB_ONLY.fingerprint, beginPub);
-                const beginPubOnlySecKeyExists = DoggoCore.api.keyExists(PUB_ONLY.fingerprint, beginSec);
-                const beginSecOnlyPubKeyExists = DoggoCore.api.keyExists(SEC_ONLY.fingerprint, beginPub);
-                const beginSecOnlySecKeyExists = DoggoCore.api.keyExists(SEC_ONLY.fingerprint, beginSec);
-                const beginPubSecPubKeyExists = DoggoCore.api.keyExists(PUB_SEC.fingerprint, beginPub);
-                const beginPubSecSecKeyExists = DoggoCore.api.keyExists(PUB_SEC.fingerprint, beginSec);
-
-                expect(beginPubOnlyPubKeyExists).to.equal(true);
-                expect(beginPubOnlySecKeyExists).to.equal(false);
-                // Importing a secret key automatically imports the public key
-                expect(beginSecOnlyPubKeyExists).to.equal(true);
-                expect(beginSecOnlySecKeyExists).to.equal(true);
-                expect(beginPubSecPubKeyExists).to.equal(true);
-                expect(beginPubSecSecKeyExists).to.equal(true);
-
-                // Delete 'em
-
-                await DoggoCore.api.deleteKeys(PUB_ONLY.fingerprint, 'pub');
-                await DoggoCore.api.deleteKeys(SEC_ONLY.fingerprint, 'all');
-
-                // Trying to delete a public key before a secret key throws an error in gpg
-                await DoggoCore.api.deleteKeys(PUB_SEC.fingerprint, 'sec');
-                await DoggoCore.api.deleteKeys(PUB_SEC.fingerprint, 'pub');
-
-                // Check lists
-
-                const { pub: afterDeletePub, sec: afterDeleteSec } = await DoggoCore.api.listKeys();
-
-                const afterDeletePubOnlyPubKeyExists = DoggoCore.api.keyExists(PUB_ONLY.fingerprint, afterDeletePub);
-                const afterDeletePubOnlySecKeyExists = DoggoCore.api.keyExists(PUB_ONLY.fingerprint, afterDeleteSec);
-                const afterDeleteSecOnlyPubKeyExists = DoggoCore.api.keyExists(SEC_ONLY.fingerprint, afterDeletePub);
-                const afterDeleteSecOnlySecKeyExists = DoggoCore.api.keyExists(SEC_ONLY.fingerprint, afterDeleteSec);
-                const afterDeletePubSecPubKeyExists = DoggoCore.api.keyExists(PUB_SEC.fingerprint, afterDeletePub);
-                const afterDeletePubSecSecKeyExists = DoggoCore.api.keyExists(PUB_SEC.fingerprint, afterDeleteSec);
-
-                expect(afterDeletePubOnlyPubKeyExists).to.equal(false);
-                expect(afterDeletePubOnlySecKeyExists).to.equal(false);
-                expect(afterDeleteSecOnlyPubKeyExists).to.equal(false);
-                expect(afterDeleteSecOnlySecKeyExists).to.equal(false);
-                expect(afterDeletePubSecPubKeyExists).to.equal(false);
-                expect(afterDeletePubSecSecKeyExists).to.equal(false);
-            });
+            //     expect(afterDeletePubOnlyPubKeyExists).to.equal(false);
+            //     expect(afterDeletePubOnlySecKeyExists).to.equal(false);
+            //     expect(afterDeleteSecOnlyPubKeyExists).to.equal(false);
+            //     expect(afterDeleteSecOnlySecKeyExists).to.equal(false);
+            //     expect(afterDeletePubSecPubKeyExists).to.equal(false);
+            //     expect(afterDeletePubSecSecKeyExists).to.equal(false);
+            // });
         });
     }
 };
@@ -282,13 +278,15 @@ internals.safeUnlink = async (unlinkPath) => {
     }
 };
 
-internals.genKeys = async (DoggoCore, ...args) => await DoggoCore.api.genKeys(...args);
+internals.genKeys = async (Doggo, ...args) => await Doggo.api.genKeys(...args);
+
+internals.first = (arr) => arr[0];
 
 internals.randomNumberNoDot = () => String(Math.random()).replace('.', '');
 
-internals.extractFingerprintFromCreationSuccessMessage = async (DoggoCore, msg) => {
+internals.extractFingerprintFromCreationSuccessMessage = async (Doggo, msg) => {
 
-    const [, res] = await DoggoCore.api.getFingerprint(msg.split(' key ')[1].split(' ')[0]);
+    const [, res] = await Doggo.api.getFingerprint(msg.split(' key ')[1].split(' ')[0]);
     return res[0].fingerprint;
 };
 

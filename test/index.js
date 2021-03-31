@@ -75,7 +75,7 @@ describe('AdapterTestSuite', () => {
         const testSuite = new AdapterTestSuite(MockAdapter, TEST_UTILS);
 
         expect(testSuite.adapter).to.equal(MockAdapter);
-        expect(testSuite.doggoCore).to.include(['api', 'version']);
+        expect(testSuite.doggo).to.include(['api', 'version']);
         expect(testSuite.testUtils).to.equal(TEST_UTILS);
     });
 

@@ -38,7 +38,20 @@ internals.getKeyBasicInfo = ({ fingerprint, identifier }) => ({
 
 internals.lower = (str) => str.toLowerCase();
 
-internals.pickArr = (key, arr) => arr.map((obj) => obj[key]);
+internals.pickArr = (keys, arr) => {
+
+    return arr.map((obj) => {
+
+        return [].concat(keys)
+            .reduce((collector, key) => {
+
+                return {
+                    ...collector,
+                    [key]: obj[key]
+                };
+            }, {});
+    });
+};
 
 internals.getFileContents = async (path) => {
 
@@ -64,8 +77,13 @@ internals.searchForKeys = async (options) => {
         SEC_ONLY,
         PUB_ONLY
     ]
-        // Search
+        // Search filter
         .filter(({ fingerprint, identifier }) => {
+
+            // Just being clunky but clear about what's going on
+            if (!search) {
+                return true;
+            }
 
             // Case-insensitive
             return lower(fingerprint).includes(lower(search))
@@ -101,7 +119,7 @@ internals.searchForKeys = async (options) => {
                         pub: !keyPaths.pub ? null : await getFileContents(keyPaths.pub),
                         sec: !keyPaths.sec ? null : await getFileContents(keyPaths.sec)
                     }
-                }
+                };
             })
     );
 };
@@ -150,28 +168,17 @@ module.exports = {
         return getKeyBasicInfo(matchedKey);
     },
     exportKey: () => null,
-    listKeys: async ({ search, type, first } = {}) => {
+    listKeys: async ({ search, type } = {}) => {
 
         const {
             searchForKeys,
             pickArr
         } = internals;
 
-        const keys = pickArr('keyValues', await searchForKeys({
+        return pickArr(['fingerprint', 'identifier'], await searchForKeys({
             search,
-            type,
-            resolve: true
+            type
         }));
-
-        if (first) {
-            if (keys.length !== 1) {
-                // TODO change to specific error pulled in from doggo
-                throw new Error('Will only return first if one result exists');
-            }
-            return keys[0];
-        }
-
-        return keys;
     },
     encrypt: () => null,
     decrypt: () => null,
