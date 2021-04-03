@@ -46,7 +46,7 @@ module.exports = class DoggoAdapterTestSuite {
 
         const Doggo = this.doggo;
 
-        describe(`DoggoAdapterTestSuite: doggo adapter "${name}" tests`, () => {
+        describe(`DoggoAdapterTestSuite: doggo adapter "${name}" tests:`, () => {
 
             it('imports valid keys', async () => {
 
