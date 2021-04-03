@@ -43,22 +43,10 @@ describe('Doggo', () => {
 
     it('Throws on no args passed (adapter is required)', () => {
 
-        expect(() => Doggo()).to.throw(/Invalid adapter passed/);
+        expect(() => Doggo()).to.throw();
     });
 
-    it('Defaults a genPassword func if none is provided', () => {
-
-        const adapterNoGenPw = { ...MockAdapter };
-        delete adapterNoGenPw.genPassword;
-
-        const doggo = Doggo(adapterNoGenPw);
-
-        expect(doggo.api).to.include('genPassword');
-
-        expect(doggo.api.genPassword()).to.exist();
-    });
-
-    it('Shows package.json\'s version', () => {
+    it('Provides correct package version', () => {
 
         expect(Doggo(MockAdapter).version).to.equal(Package.version);
     });
@@ -91,11 +79,11 @@ describe('AdapterTestSuite', () => {
 
         expect(() => new AdapterTestSuite(MockAdapter, {})).to.throw(/Invalid testUtils passed/);
     });
-
-    /*
-        Generate and run test suite on MockAdapter
-    */
-
-    const adapterTestSuite = new AdapterTestSuite(MockAdapter, TEST_UTILS);
-    adapterTestSuite.genAndRunTests();
 });
+
+/*
+    Run AdapterTestSuite on MockAdapter
+*/
+
+const adapterTestSuite = new AdapterTestSuite(MockAdapter, TEST_UTILS);
+adapterTestSuite.genAndRunTests();

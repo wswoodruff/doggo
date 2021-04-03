@@ -1,4 +1,5 @@
 "use strict";
+/* $lab:coverage:off$ */
 
 function dedent(strings) {
 
@@ -57,3 +58,5 @@ function dedent(strings) {
 if (typeof module !== "undefined") {
   module.exports = dedent;
 }
+
+/* $lab:coverage:on$ */

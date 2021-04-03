@@ -7,13 +7,14 @@ const Joi = require('joi');
 const Schemas = require('../lib/schema');
 const TestKeyInfo = require('./test-key-info');
 
+// const InvalidKeyError = require('../lib/errors/InvalidKeyError');
+// const TooManyKeysError = require('../lib/errors/TooManyKeysError');
+
 const internals = {};
 
 // TODO clear gpg cache before these tests
+// TODO move this TODO comment to doggo-adapter-gpg
 // Run 'gpgconf --kill gpg-agent'
-
-// TODO normalize adapter output to something like
-// { output, fingerprints, ...etc }
 
 internals.testUtilsSchema = Joi.object({
     expect: Joi.func().required(),
@@ -78,28 +79,28 @@ module.exports = class DoggoAdapterTestSuite {
 
                 // PUB_SEC pub
                 // Assert output matches API schema
-                expect(() => Joi.assert(pubSecSec, Schemas.api.importKey)).to.not.throw();
+                expect(() => Joi.assert(pubSecSec, Schemas.api.response.importKey)).to.not.throw();
                 // Assert correct key info was returned
                 expect(pubSecPub.fingerprint).to.equal(PUB_SEC.fingerprint);
                 expect(pubSecPub.identifier).to.equal(PUB_SEC.identifier);
 
                 // PUB_SEC sec
                 // Assert output matches API schema
-                expect(() => Joi.assert(pubSecPub, Schemas.api.importKey)).to.not.throw();
+                expect(() => Joi.assert(pubSecPub, Schemas.api.response.importKey)).to.not.throw();
                 // Assert correct key info was returned
                 expect(pubSecSec.fingerprint).to.equal(PUB_SEC.fingerprint);
                 expect(pubSecSec.identifier).to.equal(PUB_SEC.identifier);
 
                 // SEC_ONLY
                 // Assert output matches API schema
-                expect(() => Joi.assert(secOnlySec, Schemas.api.importKey)).to.not.throw();
+                expect(() => Joi.assert(secOnlySec, Schemas.api.response.importKey)).to.not.throw();
                 // Assert correct key info was returned
                 expect(secOnlySec.fingerprint).to.equal(SEC_ONLY.fingerprint);
                 expect(secOnlySec.identifier).to.equal(SEC_ONLY.identifier);
 
                 // PUB_ONLY
                 // Assert output matches API schema
-                expect(() => Joi.assert(pubOnlyPub, Schemas.api.importKey)).to.not.throw();
+                expect(() => Joi.assert(pubOnlyPub, Schemas.api.response.importKey)).to.not.throw();
                 // Assert correct key info was returned
                 expect(pubOnlyPub.fingerprint).to.equal(PUB_ONLY.fingerprint);
                 expect(pubOnlyPub.identifier).to.equal(PUB_ONLY.identifier);
@@ -124,7 +125,7 @@ module.exports = class DoggoAdapterTestSuite {
                 const keys = await Doggo.api.listKeys({ type: 'all' });
 
                 // Assert output matches API schema
-                expect(() => Joi.assert(keys, Schemas.api.listKeys)).to.not.throw();
+                expect(() => Joi.assert(keys, Schemas.api.response.listKeys)).to.not.throw();
 
                 // Might have other keys on the keychain
                 expect(keys.length).to.be.at.least(3);
@@ -134,14 +135,14 @@ module.exports = class DoggoAdapterTestSuite {
                 expect(find({ arr: keys, compareWith: SEC_ONLY, key: 'fingerprint' })).to.exist();
             });
 
-            it('lists all keys given no options', async () => {
+            it('lists all keys if passed no options', async () => {
 
                 const { find } = internals;
 
                 const keys = await Doggo.api.listKeys();
 
                 // Assert output matches API schema
-                expect(() => Joi.assert(keys, Schemas.api.listKeys)).to.not.throw();
+                expect(() => Joi.assert(keys, Schemas.api.response.listKeys)).to.not.throw();
 
                 // Might have other keys on the keychain
                 expect(keys.length).to.be.at.least(3);
@@ -167,8 +168,8 @@ module.exports = class DoggoAdapterTestSuite {
                 const sec = await Doggo.api.listKeys({ type: 'sec' });
 
                 // Assert output matches API schema
-                expect(() => Joi.assert(pub, Schemas.api.listKeys)).to.not.throw();
-                expect(() => Joi.assert(sec, Schemas.api.listKeys)).to.not.throw();
+                expect(() => Joi.assert(pub, Schemas.api.response.listKeys)).to.not.throw();
+                expect(() => Joi.assert(sec, Schemas.api.response.listKeys)).to.not.throw();
 
                 expect(find({ arr: pub, compareWith: PUB_SEC, key: 'fingerprint' })).to.exist();
                 // Public keys can always be derived from secret keys
@@ -181,33 +182,62 @@ module.exports = class DoggoAdapterTestSuite {
                 expect(find({ arr: sec, compareWith: PUB_ONLY, key: 'fingerprint' })).to.not.exist();
             });
 
-            it('finds keys by fingerprint using "search"', async () => {
+            it('finds a key by fingerprint', async () => {
 
                 const { find } = internals;
 
                 const keys = await Doggo.api.listKeys({ search: PUB_SEC.fingerprint });
 
-                expect(() => Joi.assert(keys, Schemas.api.listKeys)).to.not.throw();
+                expect(() => Joi.assert(keys, Schemas.api.response.listKeys)).to.not.throw();
 
                 expect(find({ arr: keys, compareWith: PUB_SEC, key: 'fingerprint' })).to.exist();
                 // NOTE: to.not.exist()
                 expect(find({ arr: keys, compareWith: SEC_ONLY, key: 'fingerprint' })).to.not.exist();
                 expect(find({ arr: keys, compareWith: PUB_ONLY, key: 'fingerprint' })).to.not.exist();
-
-                //
-
-                // const poPubExists = await Doggo.api.keyExists(PUB_ONLY.identifier, pub);
-                // const poSecexists = await Doggo.api.keyExists(PUB_ONLY.identifier, sec);
-
-                // const psPubExists = await Doggo.api.keyExists(PUB_SEC.identifier, pub);
-                // const psSecExists = await Doggo.api.keyExists(PUB_SEC.identifier, sec);
-
-                // expect(poPubExists).to.equal(true);
-                // expect(poSecexists).to.equal(false);
-
-                // expect(psPubExists).to.equal(true);
-                // expect(psSecExists).to.equal(true);
             });
+
+            it('finds a key by identifier', async () => {
+
+                const { find } = internals;
+
+                const keys = await Doggo.api.listKeys({ search: SEC_ONLY.identifier });
+
+                expect(() => Joi.assert(keys, Schemas.api.response.listKeys)).to.not.throw();
+
+                expect(find({ arr: keys, compareWith: SEC_ONLY, key: 'identifier' })).to.exist();
+                // NOTE: to.not.exist()
+                expect(find({ arr: keys, compareWith: PUB_SEC, key: 'identifier' })).to.not.exist();
+                expect(find({ arr: keys, compareWith: PUB_ONLY, key: 'identifier' })).to.not.exist();
+            });
+
+            // it('encrypts text for an imported secret key', async () => {
+
+            //     /*
+            //      *   Sry I can't remember where I buried your
+            //      *   car keys in the yard I'm just a pup
+            //      */
+            //     const { CLEAR_TEXT: { CAR_KEYS } } = TestKeyInfo;
+
+            //     // NOTE this must be coupled with
+
+            //     const encrypted = await Doggo.api.encrypt({
+            //         search: PUB_SEC.fingerprint,
+            //         clearText: CAR_KEYS
+            //     });
+
+            //     console.log('encrypted', encrypted);
+
+            //     expect(encrypted).to.exist();
+            // });
+
+            // TODO
+
+            // Test searching for something that matches multiple keys
+            // Want to get Doggo.TooManyKeysError to throw if multiple keys found from "search"
+
+
+            /////////////////
+
 
             // it('encrypts and decrypts text for a user', async () => {
 

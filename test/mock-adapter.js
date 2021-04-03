@@ -7,12 +7,19 @@
 
 const { promises: Fs } = require('fs');
 
+const Joi = require('joi');
+
+const Schemas = require('../lib/schema');
 // This lone warrior, 'TestKeyInfo', is the ultimate
 // judge for if things between mock-adapter and
 // 'adapter-test-suite' are lining up properly.
 const TestKeyInfo = require('./test-key-info');
 
 const internals = {};
+
+let naughtyDogBadBoiNoGoodGlobalCounter = 0;
+
+// TODO support a chainable api so we can tack on '.first()' for example
 
 internals.getAllKeyValues = async () => {
 
@@ -124,13 +131,15 @@ internals.searchForKeys = async (options) => {
     );
 };
 
-//////////////////////////////////
-
 module.exports = {
-    name: 'mock',
+    name: 'mock-adapter',
     genKeys: () => null,
-    deleteKeys: () => null,
-    importKey: async ({ key, type, password }) => {
+    deleteKey: () => null,
+    importKey: async (importKeyArgs) => {
+
+        Joi.assert(importKeyArgs, Schemas.api.request.importKey);
+
+        const { key } = importKeyArgs;
 
         const {
             getAllKeyValues,
@@ -167,7 +176,10 @@ module.exports = {
 
         return getKeyBasicInfo(matchedKey);
     },
-    exportKey: () => null,
+    exportKeys: ({ search, type } = {}) => {
+
+        return null;
+    },
     listKeys: async ({ search, type } = {}) => {
 
         const {
@@ -180,7 +192,30 @@ module.exports = {
             type
         }));
     },
-    encrypt: () => null,
+    encrypt: async ({ search, clearText }) => {
+
+        await true;
+
+        // Increment the naughtyDogBadBoiNoGoodGlobalCounter so we can
+        // send different responses because true encryption won't ever
+        // be the exact same twice
+        ++naughtyDogBadBoiNoGoodGlobalCounter;
+
+        console.log('naughtyDogBadBoiNoGoodGlobalCounter', naughtyDogBadBoiNoGoodGlobalCounter);
+
+        // const { searchForKeys } = internals;
+
+        //
+
+        // TODO switch to chaining .first()
+        // TODO make .strictFirst() to assert that
+        // there's only one match, throwing otherwise.
+        // This would be mostly inspired by
+        // Objections's .throwIfNotFound()
+        // const [key] = await searchForKeys({ search });
+
+        // encryptedText
+    },
     decrypt: () => null,
     genPassword: () => null,
     keyExists: () => null,
