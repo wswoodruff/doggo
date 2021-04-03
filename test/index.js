@@ -79,6 +79,8 @@ describe('AdapterTestSuite', () => {
 });
 
 /*
+    ======================================
     Run AdapterTestSuite on MockAdapter
+    ======================================
 */
 new AdapterTestSuite(MockAdapter, TEST_UTILS).test();
