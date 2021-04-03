@@ -239,6 +239,11 @@ module.exports = class DoggoAdapterTestSuite {
                 expect(encrypted2.match(/END PGP MESSAGE/)).to.exist();
             });
 
+            // TODO for encrypting
+
+            // Test searching for something that matches multiple keys
+            // throw Doggo.TooManyKeysError if multiple keys found from "search"
+
             it('decrypts text for an imported secret key', async () => {
                 /*
                  *   Sry I can't remember where I
@@ -255,70 +260,31 @@ module.exports = class DoggoAdapterTestSuite {
                 expect(decrypted).to.equal(carKeys);
             });
 
-            // it('decrypts exported text for an imported secret key', async () => {
-            //     /*
-            //      *   Sry I can't remember where I
-            //      *   buried ur car keys I'm just a pup
-            //      */
-            //     const { CLEAR_TEXT: { carKeys } } = TestKeyInfo;
+            it('decrypts exported text for an imported secret key', async () => {
+                /*
+                 *   Sry I can't remember where I
+                 *   buried ur car keys I'm just a pup
+                 */
+                const { CLEAR_TEXT: { carKeys } } = TestKeyInfo;
 
-            //     const encrypted1 = await Doggo.api.encrypt({
-            //         search: PUB_SEC.fingerprint,
-            //         clearText: carKeys
-            //     });
+                const encrypted = await Doggo.api.encrypt({
+                    search: PUB_SEC.fingerprint,
+                    clearText: carKeys
+                });
 
-            //     // This is here for now until I open things up to non-gpg implementations
-            //     expect(encrypted1.match(/BEGIN PGP MESSAGE/)).to.exist();
-            //     expect(encrypted1.match(/END PGP MESSAGE/)).to.exist();
+                expect(encrypted).to.not.equal(carKeys);
 
-            //     const encrypted2 = await Doggo.api.encrypt({
-            //         search: PUB_SEC.fingerprint,
-            //         clearText: carKeys
-            //     });
+                const decrypted = await Doggo.api.decrypt({
+                    text: encrypted,
+                    password: PUB_SEC.password
+                });
 
-            //     expect(encrypted1).to.not.equal(encrypted2);
-
-            //     // This is here for now until I open things up to non-gpg implementations
-            //     expect(encrypted2.match(/BEGIN PGP MESSAGE/)).to.exist();
-            //     expect(encrypted2.match(/END PGP MESSAGE/)).to.exist();
-            // });
-
-            // TODO
-
-            // Test searching for something that matches multiple keys
-            // Want to get Doggo.TooManyKeysError to throw if multiple keys found from "search"
-
+                expect(decrypted).to.not.equal(encrypted);
+                // to.yes.equal loL
+                expect(decrypted).to.equal(carKeys);
+            });
 
             /////////////////
-
-
-            // it('encrypts and decrypts text for a user', async () => {
-
-            //     const srcFile = __dirname + '/secures/plaintext.txt';
-            //     const destFile = __dirname + '/secures/plaintext.gpg';
-            //     const decryptPath = __dirname + '/secures/plaintext.gpg.decrypt';
-
-            //     await Doggo.api.encrypt(PUB_SEC.identifier, srcFile, destFile);
-
-            //     const plaintext = await Fs.readFile(srcFile);
-            //     const encrypted = await Fs.readFile(destFile);
-
-            //     // Pretty naiive check but meh I'm just a doggo
-            //     // How do you check if something looks encrypted?
-            //     const encryptedToString = encrypted.toString('utf8');
-
-            //     expect(encryptedToString).to.not.equal(plaintext.toString('utf8'));
-
-            //     if (Doggo.adapter.name === 'gpg') {
-            //         expect(encryptedToString).to.include('-----BEGIN PGP MESSAGE-----');
-            //         expect(encryptedToString).to.include('-----END PGP MESSAGE-----');
-            //     }
-
-            //     await Doggo.api.decrypt(destFile, decryptPath, 'test');
-
-            //     const decrypted = await Fs.readFile(decryptPath);
-            //     expect(decrypted.toString('utf8')).to.equal(plaintext.toString('utf8'));
-            // });
 
             // it('exports keys', async (done) => {
 
