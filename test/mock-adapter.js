@@ -9,6 +9,7 @@ const { promises: Fs } = require('fs');
 
 const Joi = require('joi');
 
+const Doggo = require('../lib');
 const Schemas = require('../lib/schema');
 // This lone warrior, 'TestKeyInfo', is the ultimate
 // judge for if things between mock-adapter and
@@ -17,7 +18,7 @@ const TestKeyInfo = require('./test-key-info');
 
 const internals = {};
 
-let naughtyDogBadBoiNoGoodGlobalCounter = 0;
+let naughtyDogBadBoiNoGoodGlobalEncryptionCounter = 0;
 
 // TODO support a chainable api so we can tack on '.first()' for example
 
@@ -194,27 +195,27 @@ module.exports = {
     },
     encrypt: async ({ search, clearText }) => {
 
-        await true;
+        const { searchForKeys } = internals;
 
-        // Increment the naughtyDogBadBoiNoGoodGlobalCounter so we can
+        const keys = await searchForKeys({ search });
+
+        if (keys.length > 1) {
+            throw new Doggo.TooManyKeysError();
+        }
+
+        // Cheating here — we expect pubsec's info to be passed to 'search' —
+        // if we make it this far...
+        const [pubSec] = keys;
+
+        // This couples the mock-adapter to the test for now
+        // 'carKeys' here === TestKeyInfo.KEYS.PUB_SEC.encryptedText.carKeys
+        const { encryptedText: { carKeys } } = pubSec;
+
+        // Increment the 'naughtyDogBadBoiNoGoodGlobalEncryptionCounter' so we can
         // send different responses because true encryption won't ever
-        // be the exact same twice
-        ++naughtyDogBadBoiNoGoodGlobalCounter;
-
-        console.log('naughtyDogBadBoiNoGoodGlobalCounter', naughtyDogBadBoiNoGoodGlobalCounter);
-
-        // const { searchForKeys } = internals;
-
-        //
-
-        // TODO switch to chaining .first()
-        // TODO make .strictFirst() to assert that
-        // there's only one match, throwing otherwise.
-        // This would be mostly inspired by
-        // Objections's .throwIfNotFound()
-        // const [key] = await searchForKeys({ search });
-
-        // encryptedText
+        // be the exact same twice.
+        // This cycles through the items in 'carKeys.encrypted'
+        return carKeys.encrypted[++naughtyDogBadBoiNoGoodGlobalEncryptionCounter % carKeys.encrypted.length];
     },
     decrypt: () => null,
     genPassword: () => null,
