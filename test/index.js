@@ -9,7 +9,6 @@ const AdapterTestSuite = require('./adapter-test-suite');
 const MockAdapter = require('./mock-adapter');
 const Package = require('../package.json');
 
-// Test shortcuts
 const { describe, it } = exports.lab = Lab.script();
 const { expect } = Code;
 
@@ -21,19 +20,17 @@ const TEST_UTILS = {
 
 const getBadAdapter = () => {
 
-    const badMock = { ...MockAdapter };
-    delete badMock.encrypt;
+    const mock = { ...MockAdapter };
+    delete mock.encrypt;
 
-    return badMock;
+    return mock;
 };
 
 describe('Doggo', () => {
 
-    it('Returns an { api, version } object for valid adapter', () => {
+    it('Returns a Doggo object for valid adapter', () => {
 
-        const doggo = Doggo(MockAdapter);
-
-        expect(doggo).to.include(['api', 'version']);
+        expect(Doggo(MockAdapter)).to.include(['api', 'version']);
     });
 
     it('Throws on invalid adapter schema', () => {
@@ -84,6 +81,4 @@ describe('AdapterTestSuite', () => {
 /*
     Run AdapterTestSuite on MockAdapter
 */
-
-const adapterTestSuite = new AdapterTestSuite(MockAdapter, TEST_UTILS);
-adapterTestSuite.genAndRunTests();
+new AdapterTestSuite(MockAdapter, TEST_UTILS).test();

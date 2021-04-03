@@ -38,7 +38,7 @@ module.exports = class DoggoAdapterTestSuite {
         this.testUtils = testUtils;
     }
 
-    genAndRunTests() {
+    test() {
 
         const { name } = this.adapter;
         const { expect, describe, it } = this.testUtils;
@@ -115,7 +115,7 @@ module.exports = class DoggoAdapterTestSuite {
             // TODO
             // it('throws when importing invalid keys', async () => {
 
-            //     // throw Doggo.ERROR.WHATEVER
+            //     // throw Doggo.InvalidKeyError
             // });
 
             it('lists all keys for type "all"', async () => {
@@ -210,25 +210,24 @@ module.exports = class DoggoAdapterTestSuite {
                 expect(find({ arr: keys, compareWith: PUB_ONLY, key: 'identifier' })).to.not.exist();
             });
 
-            // it('encrypts text for an imported secret key', async () => {
+            it('encrypts text for an imported secret key', async () => {
+                /*
+                 *   Sry I can't remember where I
+                 *   buried ur car keys I'm just a pup
+                 */
+                const { CLEAR_TEXT: { CAR_KEYS } } = TestKeyInfo;
 
-            //     /*
-            //      *   Sry I can't remember where I buried your
-            //      *   car keys in the yard I'm just a pup
-            //      */
-            //     const { CLEAR_TEXT: { CAR_KEYS } } = TestKeyInfo;
+                // NOTE this must be coupled with
 
-            //     // NOTE this must be coupled with
+                const encrypted = await Doggo.api.encrypt({
+                    search: PUB_SEC.fingerprint,
+                    clearText: CAR_KEYS
+                });
 
-            //     const encrypted = await Doggo.api.encrypt({
-            //         search: PUB_SEC.fingerprint,
-            //         clearText: CAR_KEYS
-            //     });
+                console.log('encrypted', encrypted);
 
-            //     console.log('encrypted', encrypted);
-
-            //     expect(encrypted).to.exist();
-            // });
+                expect(encrypted).to.exist();
+            });
 
             // TODO
 

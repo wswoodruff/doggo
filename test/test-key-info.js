@@ -12,7 +12,7 @@ const Utils = require('./utils');
 const CLEAR_TEXT = {
     CAR_KEYS: Dedent`
         Sry I can't remember where I
-        buried your car keys I'm just a pup
+        buried ur car keys I'm just a pup
     `
 };
 
@@ -33,23 +33,23 @@ module.exports = {
                     Utils.removeEmptyLines(Dedent`
                         -----BEGIN PGP MESSAGE-----
 
-                        hF4DGneFmNbx5b0SAQdAFSfosqEp1CNlq1CHJCWlKr+2M6ryAFNTMf1rn4dlGWQw
-                        cdFgHDY81AYMq0WHhpOJoigj1go3iLSggLtfkOCD8TEZCu330f1Jb7Qgwo1p9Ngd
-                        0osBRr0q/Mk1v+b9EIftm/pawdFG3SVm+xzbmZO2uQ+sG+IcVpw2H9g3yWF2peam
-                        0dOakM13FgEG0w8CS60j9U5BTx2AY/U62PrA/Y7Y61DpMfPWXyimNd6jRj3qulId
-                        iyDHyVu/g+GdBiwhQZjjCjiDp2SptqZtKhFAoRnf0M5XC2MrAe+DdGuu0D2z
-                        =iDL0
+                        hF4DLttmovOslKMSAQdAspC/iO1DoW4h8dUohQt2v1XVpEwL4wZ/F6uLjJW0d3Uw
+                        sRGpNA67mbvzuuSoTiBbgshjHJ23dOT1Tm4kfIjtCSfOJ/YiHuJulYKo5fiIMBfr
+                        0oUBmPv0KoWeS6tWpWAMOVdua+RbR3vCYr4iB9R+Tf84mxEMJwg1G0B1NIPxD1ic
+                        lRwJDX9c6gNP+17DpF4zTnfVjNYfAPvZueLmR2zvjArRP4BnBGd+EMSLq83z2Dlf
+                        IBdb8kA8B6Av6Kr2ZLYdXfaHHK8F93PVVBgdjO0xt7MwFiFeXtb5
+                        =TDof
                         -----END PGP MESSAGE-----
                     `),
                     Utils.removeEmptyLines(Dedent`
                         -----BEGIN PGP MESSAGE-----
 
-                        hF4DGneFmNbx5b0SAQdA8bjG6mUaSbtzmXuIyu4yPEQwiMjq0N7wknNXxkk/gw4w
-                        U8hFfG0bEapYVdMgbEwZCwSVB8CKXBUgCjKIZ92q/Sq1WSgxFQa+MAsS5aMB7Cpj
-                        0ooB6EJTijvCvCtJQN5pKnb28FmAwv3RCGQByGAXtMOjeeIRN9a0KnNeeOatq3VI
-                        IrHtqYkEuZ4nBq3ZtDY69Q7iZ8rRqc2gWBZ3B0PxfGcf0WAfST/+16KqgvJvc6co
-                        +V9VsiPnupgyAB/JpQGLxBmOdCe2eHXRVlsUSgYEfxwJJ9ThpdBkYGen9iU=
-                        =pc/N
+                        hF4DLttmovOslKMSAQdA3a16fsVbowp0ss0pHOhzCtpZIlNRuCCNcAK9BSG2QEAw
+                        ry0XfMhdwX5rYp9mAFdguTH+dhFQxTtuAtw+RkAOYrGSU6evWOjXttdf8n17F3TD
+                        0oQB33i2DPVB97eESW3so8VX8DYYBlLjIpiwZURtLwJt5lZUeRSCBT4pmxrwvJm7
+                        j6k4cjJO2jRJrQpCI418hlw/g/0ACGnQ0L2fa0n3hFY1DMU4R2Wyof9m1eji3Ih3
+                        nWKx6DnqGtHlJedIrVpuPdtI7pAmGtUHUpSGkSCjSao4S/8DeTY=
+                        =hl+B
                         -----END PGP MESSAGE-----
                     `)
                 ]
