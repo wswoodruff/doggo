@@ -217,7 +217,14 @@ module.exports = {
         // This cycles through the items in 'carKeys.encrypted'
         return carKeys.encrypted[++naughtyDogBadBoiNoGoodGlobalEncryptionCounter % carKeys.encrypted.length];
     },
-    decrypt: () => null,
+    decrypt: async ({ text, password }) => {
+
+        // This works for now
+        await true;
+        // TODO make this more robust
+        const { KEYS: { PUB_SEC: { encryptedText: { carKeys: { clearText } } } } } = TestKeyInfo;
+        return clearText;
+    },
     genPassword: () => null,
     keyExists: () => null,
     getAdapterArgs: () => null,

@@ -210,8 +210,7 @@ module.exports = class DoggoAdapterTestSuite {
                 expect(find({ arr: keys, compareWith: PUB_ONLY, key: 'identifier' })).to.not.exist();
             });
 
-            // This test is important
-            it('encrypts text for an imported secret key', async () => {
+            it('encrypts PGP text for an imported secret key', async () => {
                 /*
                  *   Sry I can't remember where I
                  *   buried ur car keys I'm just a pup
@@ -232,12 +231,57 @@ module.exports = class DoggoAdapterTestSuite {
                     clearText: carKeys
                 });
 
+                // The same message encrypted twice will never be equal
                 expect(encrypted1).to.not.equal(encrypted2);
 
                 // This is here for now until I open things up to non-gpg implementations
                 expect(encrypted2.match(/BEGIN PGP MESSAGE/)).to.exist();
                 expect(encrypted2.match(/END PGP MESSAGE/)).to.exist();
             });
+
+            it('decrypts text for an imported secret key', async () => {
+                /*
+                 *   Sry I can't remember where I
+                 *   buried ur car keys I'm just a pup
+                 */
+                const { CLEAR_TEXT: { carKeys } } = TestKeyInfo;
+
+                const decrypted = await Doggo.api.decrypt({
+                    text: PUB_SEC.encryptedText.carKeys[0],
+                    password: PUB_SEC.password
+                });
+
+                expect(decrypted).to.equal(PUB_SEC.encryptedText.carKeys.clearText);
+                expect(decrypted).to.equal(carKeys);
+            });
+
+            // it('decrypts exported text for an imported secret key', async () => {
+            //     /*
+            //      *   Sry I can't remember where I
+            //      *   buried ur car keys I'm just a pup
+            //      */
+            //     const { CLEAR_TEXT: { carKeys } } = TestKeyInfo;
+
+            //     const encrypted1 = await Doggo.api.encrypt({
+            //         search: PUB_SEC.fingerprint,
+            //         clearText: carKeys
+            //     });
+
+            //     // This is here for now until I open things up to non-gpg implementations
+            //     expect(encrypted1.match(/BEGIN PGP MESSAGE/)).to.exist();
+            //     expect(encrypted1.match(/END PGP MESSAGE/)).to.exist();
+
+            //     const encrypted2 = await Doggo.api.encrypt({
+            //         search: PUB_SEC.fingerprint,
+            //         clearText: carKeys
+            //     });
+
+            //     expect(encrypted1).to.not.equal(encrypted2);
+
+            //     // This is here for now until I open things up to non-gpg implementations
+            //     expect(encrypted2.match(/BEGIN PGP MESSAGE/)).to.exist();
+            //     expect(encrypted2.match(/END PGP MESSAGE/)).to.exist();
+            // });
 
             // TODO
 
