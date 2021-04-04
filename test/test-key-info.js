@@ -65,7 +65,7 @@ module.exports = {
             identifier: 'doggo test sec only 07654950429608411',
             password: 'test',
             keyPaths: {
-                pub: null,
+                pub: Path.join(__dirname, 'secures/keys/secOnly.pub'),
                 sec: Path.join(__dirname, 'secures/keys/secOnly.sec')
             }
         },

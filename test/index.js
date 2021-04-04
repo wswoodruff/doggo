@@ -5,7 +5,7 @@ const Code = require('@hapi/code');
 const Lab = require('@hapi/lab');
 
 const Doggo = require('../lib');
-const AdapterTestSuite = require('./adapter-test-suite');
+const DoggoAdapterTestSuite = require('./adapter-test-suite');
 const MockAdapter = require('./mock-adapter');
 const Package = require('../package.json');
 
@@ -49,13 +49,13 @@ describe('Doggo', () => {
     });
 });
 
-describe('AdapterTestSuite', () => {
+describe('DoggoAdapterTestSuite', () => {
 
     it('Assigns instance props based on valid constructor args', () => {
 
-        expect(new AdapterTestSuite(MockAdapter, TEST_UTILS)).to.exist();
+        expect(new DoggoAdapterTestSuite(MockAdapter, TEST_UTILS)).to.exist();
 
-        const testSuite = new AdapterTestSuite(MockAdapter, TEST_UTILS);
+        const testSuite = new DoggoAdapterTestSuite(MockAdapter, TEST_UTILS);
 
         expect(testSuite.adapter).to.equal(MockAdapter);
         expect(testSuite.doggo).to.include(['api', 'version']);
@@ -64,23 +64,23 @@ describe('AdapterTestSuite', () => {
 
     it('Throws on no options passed', () => {
 
-        expect(() => new AdapterTestSuite()).to.throw(/Invalid adapter passed/);
+        expect(() => new DoggoAdapterTestSuite()).to.throw(/Invalid adapter passed/);
     });
 
     it('Throws on bad adapter', () => {
 
-        expect(() => new AdapterTestSuite(getBadAdapter(), TEST_UTILS)).to.throw(/encrypt/);
+        expect(() => new DoggoAdapterTestSuite(getBadAdapter(), TEST_UTILS)).to.throw(/encrypt/);
     });
 
     it('Throws on bad testUtils', () => {
 
-        expect(() => new AdapterTestSuite(MockAdapter, {})).to.throw(/Invalid testUtils passed/);
+        expect(() => new DoggoAdapterTestSuite(MockAdapter, {})).to.throw(/Invalid testUtils passed/);
     });
 });
 
 /*
     ======================================
-    Run AdapterTestSuite on MockAdapter
+    Run DoggoAdapterTestSuite on MockAdapter
     ======================================
 */
-new AdapterTestSuite(MockAdapter, TEST_UTILS).test();
+new DoggoAdapterTestSuite(MockAdapter, TEST_UTILS).test();

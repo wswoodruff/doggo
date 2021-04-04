@@ -124,8 +124,8 @@ internals.searchForKeys = async (options) => {
                     ...rest,
                     keyPaths,
                     keyValues: {
-                        pub: !keyPaths.pub ? null : await getFileContents(keyPaths.pub),
-                        sec: !keyPaths.sec ? null : await getFileContents(keyPaths.sec)
+                        pub: (type !== 'pub' && type !== 'all') ? null : await getFileContents(keyPaths.pub),
+                        sec: (type !== 'sec' && type !== 'all') ? null : await getFileContents(keyPaths.sec)
                     }
                 };
             })
@@ -177,9 +177,25 @@ module.exports = {
 
         return getKeyBasicInfo(matchedKey);
     },
-    exportKeys: ({ search, type } = {}) => {
+    exportKeys: async ({ search, type } = {}) => {
 
-        return null;
+        const { searchForKeys } = internals;
+
+        const keys = await searchForKeys({
+            search,
+            type,
+            resolve: true
+        });
+
+        return keys.map(({
+            fingerprint,
+            identifier,
+            keyValues
+        }) => ({
+            fingerprint,
+            identifier,
+            ...keyValues
+        }));
     },
     listKeys: async ({ search, type } = {}) => {
 

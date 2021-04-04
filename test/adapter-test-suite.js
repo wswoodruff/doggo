@@ -46,11 +46,11 @@ module.exports = class DoggoAdapterTestSuite {
 
         const Doggo = this.doggo;
 
+        const IS_GPG = Doggo.api.name === 'gpg';
+
         describe(`DoggoAdapterTestSuite: doggo adapter "${name}" tests:`, () => {
 
             it('imports valid keys', async () => {
-
-                const IS_GPG = Doggo.api.name === 'gpg';
 
                 const getFile = async (path) => {
 
@@ -210,6 +210,7 @@ module.exports = class DoggoAdapterTestSuite {
                 expect(find({ arr: keys, compareWith: PUB_ONLY, key: 'identifier' })).to.not.exist();
             });
 
+            // TODO support encryption for a passed-in public key cuz that'd be saweeeeet!
             it('encrypts PGP text for an imported secret key', async () => {
                 /*
                  *   Sry I can't remember where I
@@ -222,6 +223,8 @@ module.exports = class DoggoAdapterTestSuite {
                     clearText: carKeys
                 });
 
+                expect(() => Joi.assert(encrypted1, Schemas.api.response.encrypt)).to.not.throw();
+
                 // This is here for now until I open things up to non-gpg implementations
                 expect(encrypted1.match(/BEGIN PGP MESSAGE/)).to.exist();
                 expect(encrypted1.match(/END PGP MESSAGE/)).to.exist();
@@ -230,6 +233,8 @@ module.exports = class DoggoAdapterTestSuite {
                     search: PUB_SEC.fingerprint,
                     clearText: carKeys
                 });
+
+                expect(() => Joi.assert(encrypted2, Schemas.api.response.encrypt)).to.not.throw();
 
                 // The same message encrypted twice will never be equal
                 expect(encrypted1).to.not.equal(encrypted2);
@@ -240,8 +245,6 @@ module.exports = class DoggoAdapterTestSuite {
             });
 
             // TODO for encrypting
-
-            // Test searching for something that matches multiple keys
             // throw Doggo.TooManyKeysError if multiple keys found from "search"
 
             it('decrypts text for an imported secret key', async () => {
@@ -256,10 +259,14 @@ module.exports = class DoggoAdapterTestSuite {
                     password: PUB_SEC.password
                 });
 
+                expect(() => Joi.assert(decrypted, Schemas.api.response.decrypt)).to.not.throw();
+
                 expect(decrypted).to.equal(PUB_SEC.encryptedText.carKeys.clearText);
                 expect(decrypted).to.equal(carKeys);
             });
 
+            // This is an important test so it gets a star
+            // *
             it('decrypts exported text for an imported secret key', async () => {
                 /*
                  *   Sry I can't remember where I
@@ -272,6 +279,8 @@ module.exports = class DoggoAdapterTestSuite {
                     clearText: carKeys
                 });
 
+                expect(() => Joi.assert(encrypted, Schemas.api.response.encrypt)).to.not.throw();
+
                 expect(encrypted).to.not.equal(carKeys);
 
                 const decrypted = await Doggo.api.decrypt({
@@ -280,11 +289,75 @@ module.exports = class DoggoAdapterTestSuite {
                 });
 
                 expect(decrypted).to.not.equal(encrypted);
-                // to.yes.equal loL
+                // to.yes.equal
                 expect(decrypted).to.equal(carKeys);
             });
 
-            /////////////////
+            it('exports public keys', async (done) => {
+
+                const { getFileContents } = internals;
+
+                const [pubSec] = await Doggo.api.exportKeys({
+                    search: PUB_SEC.fingerprint,
+                    type: 'pub'
+                });
+
+                expect(() => Joi.assert(pubSec, Schemas.api.response.exportKeys)).to.not.throw();
+
+                expect(pubSec.pub).to.equal(await getFileContents(PUB_SEC.keyPaths.pub));
+                expect(pubSec.sec).to.equal(null);
+
+                // Testing that the crypto system can derive a public key from just a secret key
+                const [secOnly] = await Doggo.api.exportKeys({
+                    search: SEC_ONLY.fingerprint,
+                    type: 'pub'
+                });
+
+                expect(() => Joi.assert(secOnly, Schemas.api.response.exportKeys)).to.not.throw();
+
+                expect(secOnly.pub).to.equal(await getFileContents(SEC_ONLY.keyPaths.pub));
+                expect(secOnly.sec).to.equal(null);
+            });
+
+            it('exports secret keys', async (done) => {
+
+                const { getFileContents } = internals;
+
+                const [pubSec] = await Doggo.api.exportKeys({ search: PUB_SEC.fingerprint, type: 'sec' });
+
+                expect(() => Joi.assert(pubSec, Schemas.api.response.exportKeys)).to.not.throw();
+
+                expect(pubSec.pub).to.equal(null);
+                expect(pubSec.sec).to.equal(await getFileContents(PUB_SEC.keyPaths.sec));
+
+                // Testing that the crypto system can derive a public key from just a secret key
+                const [secOnly] = await Doggo.api.exportKeys({ search: SEC_ONLY.fingerprint, type: 'sec' });
+
+                expect(() => Joi.assert(secOnly, Schemas.api.response.exportKeys)).to.not.throw();
+
+                expect(secOnly.pub).to.equal(null);
+                expect(secOnly.sec).to.equal(await getFileContents(SEC_ONLY.keyPaths.sec));
+            });
+
+            it('exports all available keys', async (done) => {
+
+                const { getFileContents } = internals;
+
+                const [pubSec] = await Doggo.api.exportKeys({ search: PUB_SEC.fingerprint, type: 'all' });
+
+                expect(() => Joi.assert(pubSec, Schemas.api.response.exportKeys)).to.not.throw();
+
+                expect(pubSec.pub).to.equal(await getFileContents(PUB_SEC.keyPaths.pub));
+                expect(pubSec.sec).to.equal(await getFileContents(PUB_SEC.keyPaths.sec));
+
+                // Testing that the crypto system can derive a public key from just a secret key
+                const [secOnly] = await Doggo.api.exportKeys({ search: SEC_ONLY.fingerprint, type: 'all' });
+
+                expect(() => Joi.assert(secOnly, Schemas.api.response.exportKeys)).to.not.throw();
+
+                expect(secOnly.pub).to.equal(await getFileContents(SEC_ONLY.keyPaths.pub));
+                expect(secOnly.sec).to.equal(await getFileContents(SEC_ONLY.keyPaths.sec));
+            });
 
             // it('exports keys', async (done) => {
 
@@ -383,3 +456,9 @@ internals.extractFingerprintFromCreationSuccessMessage = async (Doggo, msg) => {
 };
 
 internals.isCI = () => process.env.TRAVIS || process.env.CI;
+
+internals.getFileContents = async (path) => {
+
+    const contents = await Fs.readFile(path);
+    return contents.toString('utf8');
+};
