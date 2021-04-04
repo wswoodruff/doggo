@@ -135,7 +135,12 @@ internals.searchForKeys = async (options) => {
 module.exports = {
     name: 'mock-adapter',
     genKeys: () => null,
-    deleteKey: () => null,
+    deleteKey: (deleteKeyArgs) => {
+
+        Joi.assert(deleteKeyArgs, Schemas.api.request.deleteKey);
+
+        // TODO
+    },
     importKey: async (importKeyArgs) => {
 
         Joi.assert(importKeyArgs, Schemas.api.request.importKey);
@@ -197,7 +202,11 @@ module.exports = {
             ...keyValues
         }));
     },
-    listKeys: async ({ search, type } = {}) => {
+    listKeys: async (listKeysArgs = {}) => {
+
+        Joi.assert(listKeysArgs, Schemas.api.request.listKeys);
+
+        const { search, type } = listKeysArgs;
 
         const {
             searchForKeys,
@@ -209,11 +218,15 @@ module.exports = {
             type
         }));
     },
-    encrypt: async ({ search, clearText }) => {
+    encrypt: async (encryptArgs) => {
+
+        Joi.assert(encryptArgs, Schemas.api.request.encrypt);
+
+        const { for: encryptFor } = encryptArgs;
 
         const { searchForKeys } = internals;
 
-        const keys = await searchForKeys({ search });
+        const keys = await searchForKeys({ search: encryptFor });
 
         if (keys.length > 1) {
             throw new Doggo.TooManyKeysError();

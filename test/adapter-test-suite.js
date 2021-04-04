@@ -219,7 +219,7 @@ module.exports = class DoggoAdapterTestSuite {
                 const { CLEAR_TEXT: { carKeys } } = TestKeyInfo;
 
                 const encrypted1 = await Doggo.api.encrypt({
-                    search: PUB_SEC.fingerprint,
+                    for: PUB_SEC.fingerprint,
                     clearText: carKeys
                 });
 
@@ -230,7 +230,7 @@ module.exports = class DoggoAdapterTestSuite {
                 expect(encrypted1.match(/END PGP MESSAGE/)).to.exist();
 
                 const encrypted2 = await Doggo.api.encrypt({
-                    search: PUB_SEC.fingerprint,
+                    for: PUB_SEC.fingerprint,
                     clearText: carKeys
                 });
 
@@ -275,7 +275,7 @@ module.exports = class DoggoAdapterTestSuite {
                 const { CLEAR_TEXT: { carKeys } } = TestKeyInfo;
 
                 const encrypted = await Doggo.api.encrypt({
-                    search: PUB_SEC.fingerprint,
+                    for: PUB_SEC.fingerprint,
                     clearText: carKeys
                 });
 
@@ -359,30 +359,24 @@ module.exports = class DoggoAdapterTestSuite {
                 expect(secOnly.sec).to.equal(await getFileContents(SEC_ONLY.keyPaths.sec));
             });
 
-            // it('exports keys', async (done) => {
+            it('deletes keys', async () => {
 
-            //     // pub
-            //     const poPublicKey = await Fs.readFile(__dirname + '/secures/keys/pubOnly.pub');
+                // TODO import the keys tested in this test
 
-            //     const pubExportKeyPath = `${__dirname}/secures/keys/test.pub`;
-            //     await Doggo.api.exportKey(PUB_ONLY.fingerprint, 'pub', pubExportKeyPath);
+                const [pubSec] = await Doggo.api.deleteKey({
+                    for: PUB_SEC.fingerprint
+                });
 
-            //     const exportedPublicKey = await Fs.readFile(pubExportKeyPath);
+                const deleteSuccessful = await Doggo.api.deleteKey({
+                    for: PUB_SEC.fingerprint
+                });
 
-            //     expect(exportedPublicKey.toString('utf8')).to.equal(poPublicKey.toString('utf8'));
+                expect(() => Joi.assert(deleteSuccessful, Schemas.api.response.deleteKey)).to.not.throw();
 
-            //     // sec
-            //     const secExportKeyPath = `${__dirname}/secures/keys/test.sec`;
-            //     await Doggo.api.exportKey(SEC_ONLY.identifier, 'sec', secExportKeyPath, 'test');
+                expect(deleteSuccessful).to.be.true();
 
-            //     const exportedSecretKey = await Fs.readFile(secExportKeyPath);
-
-            //     // Secret keys are symmetrically encrypted by gpg when exported for protection.
-            //     if (Doggo.adapter.name === 'gpg') {
-            //         expect(exportedSecretKey.toString('utf8')).to.include('-----BEGIN PGP PRIVATE KEY BLOCK-----');
-            //         expect(exportedSecretKey.toString('utf8')).to.include('-----END PGP PRIVATE KEY BLOCK-----');
-            //     }
-            // });
+                //
+            });
 
             // it('deletes keys', async () => {
 
