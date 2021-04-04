@@ -79,28 +79,28 @@ module.exports = class DoggoAdapterTestSuite {
 
                 // PUB_SEC pub
                 // Assert output matches API schema
-                expect(() => Joi.assert(pubSecSec, Schemas.api.response.importKey)).to.not.throw();
+                expect(() => Joi.assert(pubSecSec, Schemas.api.importKey.response)).to.not.throw();
                 // Assert correct key info was returned
                 expect(pubSecPub.fingerprint).to.equal(PUB_SEC.fingerprint);
                 expect(pubSecPub.identifier).to.equal(PUB_SEC.identifier);
 
                 // PUB_SEC sec
                 // Assert output matches API schema
-                expect(() => Joi.assert(pubSecPub, Schemas.api.response.importKey)).to.not.throw();
+                expect(() => Joi.assert(pubSecPub, Schemas.api.importKey.response)).to.not.throw();
                 // Assert correct key info was returned
                 expect(pubSecSec.fingerprint).to.equal(PUB_SEC.fingerprint);
                 expect(pubSecSec.identifier).to.equal(PUB_SEC.identifier);
 
                 // SEC_ONLY
                 // Assert output matches API schema
-                expect(() => Joi.assert(secOnlySec, Schemas.api.response.importKey)).to.not.throw();
+                expect(() => Joi.assert(secOnlySec, Schemas.api.importKey.response)).to.not.throw();
                 // Assert correct key info was returned
                 expect(secOnlySec.fingerprint).to.equal(SEC_ONLY.fingerprint);
                 expect(secOnlySec.identifier).to.equal(SEC_ONLY.identifier);
 
                 // PUB_ONLY
                 // Assert output matches API schema
-                expect(() => Joi.assert(pubOnlyPub, Schemas.api.response.importKey)).to.not.throw();
+                expect(() => Joi.assert(pubOnlyPub, Schemas.api.importKey.response)).to.not.throw();
                 // Assert correct key info was returned
                 expect(pubOnlyPub.fingerprint).to.equal(PUB_ONLY.fingerprint);
                 expect(pubOnlyPub.identifier).to.equal(PUB_ONLY.identifier);
@@ -125,7 +125,7 @@ module.exports = class DoggoAdapterTestSuite {
                 const keys = await Doggo.api.listKeys({ type: 'all' });
 
                 // Assert output matches API schema
-                expect(() => Joi.assert(keys, Schemas.api.response.listKeys)).to.not.throw();
+                expect(() => Joi.assert(keys, Schemas.api.listKeys.response)).to.not.throw();
 
                 // Might have other keys on the keychain
                 expect(keys.length).to.be.at.least(3);
@@ -142,7 +142,7 @@ module.exports = class DoggoAdapterTestSuite {
                 const keys = await Doggo.api.listKeys();
 
                 // Assert output matches API schema
-                expect(() => Joi.assert(keys, Schemas.api.response.listKeys)).to.not.throw();
+                expect(() => Joi.assert(keys, Schemas.api.listKeys.response)).to.not.throw();
 
                 // Might have other keys on the keychain
                 expect(keys.length).to.be.at.least(3);
@@ -168,8 +168,8 @@ module.exports = class DoggoAdapterTestSuite {
                 const sec = await Doggo.api.listKeys({ type: 'sec' });
 
                 // Assert output matches API schema
-                expect(() => Joi.assert(pub, Schemas.api.response.listKeys)).to.not.throw();
-                expect(() => Joi.assert(sec, Schemas.api.response.listKeys)).to.not.throw();
+                expect(() => Joi.assert(pub, Schemas.api.listKeys.response)).to.not.throw();
+                expect(() => Joi.assert(sec, Schemas.api.listKeys.response)).to.not.throw();
 
                 expect(find({ arr: pub, compareWith: PUB_SEC, key: 'fingerprint' })).to.exist();
                 // Public keys can always be derived from secret keys
@@ -188,7 +188,7 @@ module.exports = class DoggoAdapterTestSuite {
 
                 const keys = await Doggo.api.listKeys({ search: PUB_SEC.fingerprint });
 
-                expect(() => Joi.assert(keys, Schemas.api.response.listKeys)).to.not.throw();
+                expect(() => Joi.assert(keys, Schemas.api.listKeys.response)).to.not.throw();
 
                 expect(find({ arr: keys, compareWith: PUB_SEC, key: 'fingerprint' })).to.exist();
                 // NOTE: to.not.exist()
@@ -202,7 +202,7 @@ module.exports = class DoggoAdapterTestSuite {
 
                 const keys = await Doggo.api.listKeys({ search: SEC_ONLY.identifier });
 
-                expect(() => Joi.assert(keys, Schemas.api.response.listKeys)).to.not.throw();
+                expect(() => Joi.assert(keys, Schemas.api.listKeys.response)).to.not.throw();
 
                 expect(find({ arr: keys, compareWith: SEC_ONLY, key: 'identifier' })).to.exist();
                 // NOTE: to.not.exist()
@@ -223,7 +223,7 @@ module.exports = class DoggoAdapterTestSuite {
                     clearText: carKeys
                 });
 
-                expect(() => Joi.assert(encrypted1, Schemas.api.response.encrypt)).to.not.throw();
+                expect(() => Joi.assert(encrypted1, Schemas.api.encrypt.response)).to.not.throw();
 
                 // This is here for now until I open things up to non-gpg implementations
                 expect(encrypted1.match(/BEGIN PGP MESSAGE/)).to.exist();
@@ -234,7 +234,7 @@ module.exports = class DoggoAdapterTestSuite {
                     clearText: carKeys
                 });
 
-                expect(() => Joi.assert(encrypted2, Schemas.api.response.encrypt)).to.not.throw();
+                expect(() => Joi.assert(encrypted2, Schemas.api.encrypt.response)).to.not.throw();
 
                 // The same message encrypted twice will never be equal
                 expect(encrypted1).to.not.equal(encrypted2);
@@ -259,7 +259,7 @@ module.exports = class DoggoAdapterTestSuite {
                     password: PUB_SEC.password
                 });
 
-                expect(() => Joi.assert(decrypted, Schemas.api.response.decrypt)).to.not.throw();
+                expect(() => Joi.assert(decrypted, Schemas.api.decrypt.response)).to.not.throw();
 
                 expect(decrypted).to.equal(PUB_SEC.encryptedText.carKeys.clearText);
                 expect(decrypted).to.equal(carKeys);
@@ -279,7 +279,7 @@ module.exports = class DoggoAdapterTestSuite {
                     clearText: carKeys
                 });
 
-                expect(() => Joi.assert(encrypted, Schemas.api.response.encrypt)).to.not.throw();
+                expect(() => Joi.assert(encrypted, Schemas.api.encrypt.response)).to.not.throw();
 
                 expect(encrypted).to.not.equal(carKeys);
 
@@ -302,7 +302,7 @@ module.exports = class DoggoAdapterTestSuite {
                     type: 'pub'
                 });
 
-                expect(() => Joi.assert(pubSec, Schemas.api.response.exportKeys)).to.not.throw();
+                expect(() => Joi.assert(pubSec, Schemas.api.exportKeys.response)).to.not.throw();
 
                 expect(pubSec.pub).to.equal(await getFileContents(PUB_SEC.keyPaths.pub));
                 expect(pubSec.sec).to.equal(null);
@@ -313,7 +313,7 @@ module.exports = class DoggoAdapterTestSuite {
                     type: 'pub'
                 });
 
-                expect(() => Joi.assert(secOnly, Schemas.api.response.exportKeys)).to.not.throw();
+                expect(() => Joi.assert(secOnly, Schemas.api.exportKeys.response)).to.not.throw();
 
                 expect(secOnly.pub).to.equal(await getFileContents(SEC_ONLY.keyPaths.pub));
                 expect(secOnly.sec).to.equal(null);
@@ -325,7 +325,7 @@ module.exports = class DoggoAdapterTestSuite {
 
                 const [pubSec] = await Doggo.api.exportKeys({ search: PUB_SEC.fingerprint, type: 'sec' });
 
-                expect(() => Joi.assert(pubSec, Schemas.api.response.exportKeys)).to.not.throw();
+                expect(() => Joi.assert(pubSec, Schemas.api.exportKeys.response)).to.not.throw();
 
                 expect(pubSec.pub).to.equal(null);
                 expect(pubSec.sec).to.equal(await getFileContents(PUB_SEC.keyPaths.sec));
@@ -333,7 +333,7 @@ module.exports = class DoggoAdapterTestSuite {
                 // Testing that the crypto system can derive a public key from just a secret key
                 const [secOnly] = await Doggo.api.exportKeys({ search: SEC_ONLY.fingerprint, type: 'sec' });
 
-                expect(() => Joi.assert(secOnly, Schemas.api.response.exportKeys)).to.not.throw();
+                expect(() => Joi.assert(secOnly, Schemas.api.exportKeys.response)).to.not.throw();
 
                 expect(secOnly.pub).to.equal(null);
                 expect(secOnly.sec).to.equal(await getFileContents(SEC_ONLY.keyPaths.sec));
@@ -345,7 +345,7 @@ module.exports = class DoggoAdapterTestSuite {
 
                 const [pubSec] = await Doggo.api.exportKeys({ search: PUB_SEC.fingerprint, type: 'all' });
 
-                expect(() => Joi.assert(pubSec, Schemas.api.response.exportKeys)).to.not.throw();
+                expect(() => Joi.assert(pubSec, Schemas.api.exportKeys.response)).to.not.throw();
 
                 expect(pubSec.pub).to.equal(await getFileContents(PUB_SEC.keyPaths.pub));
                 expect(pubSec.sec).to.equal(await getFileContents(PUB_SEC.keyPaths.sec));
@@ -353,7 +353,7 @@ module.exports = class DoggoAdapterTestSuite {
                 // Testing that the crypto system can derive a public key from just a secret key
                 const [secOnly] = await Doggo.api.exportKeys({ search: SEC_ONLY.fingerprint, type: 'all' });
 
-                expect(() => Joi.assert(secOnly, Schemas.api.response.exportKeys)).to.not.throw();
+                expect(() => Joi.assert(secOnly, Schemas.api.exportKeys.response)).to.not.throw();
 
                 expect(secOnly.pub).to.equal(await getFileContents(SEC_ONLY.keyPaths.pub));
                 expect(secOnly.sec).to.equal(await getFileContents(SEC_ONLY.keyPaths.sec));
@@ -371,7 +371,7 @@ module.exports = class DoggoAdapterTestSuite {
                     for: PUB_SEC.fingerprint
                 });
 
-                expect(() => Joi.assert(deleteSuccessful, Schemas.api.response.deleteKey)).to.not.throw();
+                expect(() => Joi.assert(deleteSuccessful, Schemas.api.deleteKey.response)).to.not.throw();
 
                 expect(deleteSuccessful).to.be.true();
 

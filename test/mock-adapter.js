@@ -134,16 +134,19 @@ internals.searchForKeys = async (options) => {
 
 module.exports = {
     name: 'mock-adapter',
-    genKeys: () => null,
+    genKeys: (genKeyArgs) => {
+
+        Joi.assert(genKeyArgs, Schemas.api.genKeys.request);
+    },
     deleteKey: (deleteKeyArgs) => {
 
-        Joi.assert(deleteKeyArgs, Schemas.api.request.deleteKey);
+        Joi.assert(deleteKeyArgs, Schemas.api.deleteKey.request);
 
         // TODO
     },
     importKey: async (importKeyArgs) => {
 
-        Joi.assert(importKeyArgs, Schemas.api.request.importKey);
+        Joi.assert(importKeyArgs, Schemas.api.importKey.request);
 
         const { key } = importKeyArgs;
 
@@ -182,7 +185,11 @@ module.exports = {
 
         return getKeyBasicInfo(matchedKey);
     },
-    exportKeys: async ({ search, type } = {}) => {
+    exportKeys: async (exportKeysArgs) => {
+
+        Joi.assert(exportKeysArgs, Schemas.api.exportKeys.request);
+
+        const { search, type } = exportKeysArgs;
 
         const { searchForKeys } = internals;
 
@@ -204,7 +211,7 @@ module.exports = {
     },
     listKeys: async (listKeysArgs = {}) => {
 
-        Joi.assert(listKeysArgs, Schemas.api.request.listKeys);
+        Joi.assert(listKeysArgs, Schemas.api.listKeys.request);
 
         const { search, type } = listKeysArgs;
 
@@ -220,7 +227,7 @@ module.exports = {
     },
     encrypt: async (encryptArgs) => {
 
-        Joi.assert(encryptArgs, Schemas.api.request.encrypt);
+        Joi.assert(encryptArgs, Schemas.api.encrypt.request);
 
         const { for: encryptFor } = encryptArgs;
 
@@ -254,7 +261,10 @@ module.exports = {
         const { KEYS: { PUB_SEC: { encryptedText: { carKeys: { clearText } } } } } = TestKeyInfo;
         return clearText;
     },
-    genPassword: () => null,
+    genPassword: (genPasswordArgs) => {
+
+        Joi.assert(genPasswordArgs, Schemas.api.genPassword.request);
+    },
     keyExists: () => null,
     getAdapterArgs: () => null,
     execute: () => null,
