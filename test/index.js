@@ -67,20 +67,20 @@ describe('DoggoAdapterTestSuite', () => {
         expect(() => new DoggoAdapterTestSuite()).to.throw(/Invalid adapter passed/);
     });
 
-    it('Throws on bad adapter', () => {
+    it('Throws on invalid adapter', () => {
 
         expect(() => new DoggoAdapterTestSuite(getBadAdapter(), TEST_UTILS)).to.throw(/encrypt/);
     });
 
-    it('Throws on bad testUtils', () => {
+    it('Throws on invalid testUtils', () => {
 
         expect(() => new DoggoAdapterTestSuite(MockAdapter, {})).to.throw(/Invalid testUtils passed/);
     });
 });
 
 /*
-    ======================================
+    =========================================
     Run DoggoAdapterTestSuite on MockAdapter
-    ======================================
+    =========================================
 */
-new DoggoAdapterTestSuite(MockAdapter, TEST_UTILS).test();
+new DoggoAdapterTestSuite(MockAdapter, TEST_UTILS).run();

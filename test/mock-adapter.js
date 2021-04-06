@@ -112,7 +112,12 @@ internals.searchForKeys = async (options) => {
         .map((keyInfo) => map(keyInfo));
 
     if (!resolve) {
-        return filteredKeys;
+        return filteredKeys
+            .map((key) => ({
+                ...key,
+                pub: null,
+                sec: null
+            }));
     }
 
     // Add 'keyValues' prop
@@ -141,8 +146,6 @@ module.exports = {
     deleteKey: (deleteKeyArgs) => {
 
         Joi.assert(deleteKeyArgs, Schemas.api.deleteKey.request);
-
-        // TODO
     },
     importKey: async (importKeyArgs) => {
 
@@ -220,7 +223,7 @@ module.exports = {
             pickArr
         } = internals;
 
-        return pickArr(['fingerprint', 'identifier'], await searchForKeys({
+        return pickArr(['fingerprint', 'identifier', 'pub', 'sec'], await searchForKeys({
             search,
             type
         }));
@@ -253,11 +256,15 @@ module.exports = {
         // This cycles through the items in 'carKeys.encrypted'
         return carKeys.encrypted[++naughtyDogBadBoiNoGoodGlobalEncryptionCounter % carKeys.encrypted.length];
     },
-    decrypt: async ({ text, password }) => {
+    decrypt: async (decryptArgs) => {
 
-        // This works for now
-        await true;
         // TODO make this more robust
+
+        // Accommodate async
+        await true;
+
+        Joi.assert(decryptArgs, Schemas.api.decrypt.request);
+
         const { KEYS: { PUB_SEC: { encryptedText: { carKeys: { clearText } } } } } = TestKeyInfo;
         return clearText;
     },
