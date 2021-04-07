@@ -294,7 +294,6 @@ module.exports = class DoggoAdapterTestSuite {
                 });
 
                 const keysWithPubSec = await Doggo.api.listKeys({ search: PUB_SEC.fingerprint, type: 'pub' });
-
                 expect(keysWithPubSec.length).to.equal(1);
                 expect(keysWithPubSec.find(({ fingerprint }) => fingerprint === PUB_SEC.fingerprint)).to.exist();
 
@@ -303,13 +302,16 @@ module.exports = class DoggoAdapterTestSuite {
                     type: 'pub'
                 });
 
-                const keysWithoutPubSec = await Doggo.api.listKeys({ search: PUB_SEC.fingerprint, type: 'pub' });
-
-                expect(keysWithoutPubSec.length).to.equal(0);
-
+                // Assert output matches API schema
                 expect(() => Joi.assert(deleteSuccessful, Schemas.api.deleteKey.response)).to.not.throw();
 
                 expect(deleteSuccessful).to.equal(true);
+
+                // Assert the pub key is not able to be listed
+                const keysWithoutPubSec = await Doggo.api.listKeys({ search: PUB_SEC.fingerprint, type: 'pub' });
+                expect(keysWithoutPubSec.length).to.equal(0);
+
+                expect(keysWithPubSec.find(({ fingerprint }) => fingerprint === PUB_SEC.fingerprint)).to.exist();
 
                 await deleteAllTestKeys();
             });
@@ -447,13 +449,13 @@ module.exports = class DoggoAdapterTestSuite {
                 });
 
                 expect(decrypted).to.not.equal(encrypted);
-                // to.yes.equal
+                // to "yes" equal
                 expect(decrypted).to.equal(carKeys);
 
                 await deleteAllTestKeys();
             });
 
-            it('exports public keys', async (done) => {
+            it('exports public keys', async () => {
 
                 const { getFileContents } = internals;
 
@@ -483,7 +485,7 @@ module.exports = class DoggoAdapterTestSuite {
                 await deleteAllTestKeys();
             });
 
-            it('exports secret keys', async (done) => {
+            it('exports secret keys', async () => {
 
                 const { getFileContents } = internals;
 
@@ -507,7 +509,7 @@ module.exports = class DoggoAdapterTestSuite {
                 await deleteAllTestKeys();
             });
 
-            it('exports all available keys', async (done) => {
+            it('exports all available keys', async () => {
 
                 const { getFileContents } = internals;
 
