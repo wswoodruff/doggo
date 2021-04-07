@@ -18,23 +18,51 @@ const TestKeyInfo = require('./test-key-info');
 
 const internals = {};
 
+const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = TestKeyInfo;
+
 let naughtyDogBadBoiNoGoodGlobalEncryptionCounter = 0;
+
+// This represents the state for imported keys that
+// real cryptosystems will have
+const importedKeys = {
+    [PUB_SEC.fingerprint]: { pub: false, sec: false },
+    [SEC_ONLY.fingerprint]: { pub: false, sec: false },
+    [PUB_ONLY.fingerprint]: { pub: false, sec: false }
+};
+
+internals.addToImportedKeys = ({ fingerprint }, type) => {
+
+    Joi.assert(type, Joi.valid('pub', 'sec'));
+
+    importedKeys[fingerprint] = {
+        ...importedKeys[fingerprint],
+        [type]: true
+    };
+};
+
+internals.removeFromImportedKeys = ({ fingerprint }, type) => {
+
+    importedKeys[fingerprint] = {
+        ...importedKeys[fingerprint],
+        ...(type === 'all' ? { pub: false, sec: false } : { [type]: false })
+    };
+};
 
 // TODO support a chainable api so we can tack on '.first()' for example
 
 internals.getAllKeyValues = async () => {
 
-    const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = TestKeyInfo;
-
     const pubAndSecPubKey = await Fs.readFile(PUB_SEC.keyPaths.pub);
     const pubAndSecSecKey = await Fs.readFile(PUB_SEC.keyPaths.sec);
     const pubOnlyPubKey = await Fs.readFile(PUB_ONLY.keyPaths.pub);
+    const secOnlyPubKey = await Fs.readFile(SEC_ONLY.keyPaths.pub);
     const secOnlySecKey = await Fs.readFile(SEC_ONLY.keyPaths.sec);
 
     return {
         pubAndSecPubKey: pubAndSecPubKey.toString('utf8'),
         pubAndSecSecKey: pubAndSecSecKey.toString('utf8'),
         pubOnlyPubKey: pubOnlyPubKey.toString('utf8'),
+        secOnlyPubKey: secOnlyPubKey.toString('utf8'),
         secOnlySecKey: secOnlySecKey.toString('utf8')
     };
 };
@@ -75,8 +103,6 @@ internals.searchForKeys = async (options) => {
         map = (x) => x,
         resolve = false
     } = options;
-
-    const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = TestKeyInfo;
 
     const { lower, getFileContents } = internals;
 
@@ -143,9 +169,25 @@ module.exports = {
 
         Joi.assert(genKeyArgs, Schemas.api.genKeys.request);
     },
-    deleteKey: (deleteKeyArgs) => {
+    deleteKey: async (deleteKeyArgs) => {
 
         Joi.assert(deleteKeyArgs, Schemas.api.deleteKey.request);
+
+        const {
+            searchForKeys,
+            removeFromImportedKeys
+        } = internals;
+
+        const { search, type } = deleteKeyArgs;
+
+        const [keyToDelete] = await searchForKeys({
+            search,
+            type
+        });
+
+        removeFromImportedKeys(keyToDelete, type);
+
+        return true;
     },
     importKey: async (importKeyArgs) => {
 
@@ -155,32 +197,40 @@ module.exports = {
 
         const {
             getAllKeyValues,
-            getKeyBasicInfo
+            getKeyBasicInfo,
+            addToImportedKeys
         } = internals;
 
         const {
             pubAndSecPubKey,
             pubAndSecSecKey,
             pubOnlyPubKey,
+            secOnlyPubKey,
             secOnlySecKey
         } = await getAllKeyValues();
-
-        const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = TestKeyInfo;
 
         let matchedKey = {};
 
         switch (key) {
             case pubAndSecPubKey:
                 matchedKey = PUB_SEC;
+                addToImportedKeys(PUB_SEC, 'pub');
                 break;
             case pubAndSecSecKey:
                 matchedKey = PUB_SEC;
+                addToImportedKeys(PUB_SEC, 'sec');
                 break;
             case pubOnlyPubKey:
                 matchedKey = PUB_ONLY;
+                addToImportedKeys(PUB_ONLY, 'pub');
+                break;
+            case secOnlyPubKey:
+                matchedKey = SEC_ONLY;
+                addToImportedKeys(SEC_ONLY, 'pub');
                 break;
             case secOnlySecKey:
                 matchedKey = SEC_ONLY;
+                addToImportedKeys(SEC_ONLY, 'sec');
                 break;
             default:
                 throw new Error('Developer error');
@@ -192,9 +242,9 @@ module.exports = {
 
         Joi.assert(exportKeysArgs, Schemas.api.exportKeys.request);
 
-        const { search, type } = exportKeysArgs;
-
         const { searchForKeys } = internals;
+
+        const { search, type } = exportKeysArgs;
 
         const keys = await searchForKeys({
             search,
@@ -202,37 +252,42 @@ module.exports = {
             resolve: true
         });
 
-        return keys.map(({
-            fingerprint,
-            identifier,
-            keyValues
-        }) => ({
-            fingerprint,
-            identifier,
-            ...keyValues
-        }));
+        return keys
+            .map(({
+                fingerprint,
+                identifier,
+                keyValues
+            }) => ({
+                fingerprint,
+                identifier,
+                // importedKeys represents global state like what we have with a gpg keychain
+                pub: importedKeys[fingerprint].pub ? keyValues.pub : null,
+                sec: importedKeys[fingerprint].sec ? keyValues.sec : null
+            }));
     },
     listKeys: async (listKeysArgs = {}) => {
 
         Joi.assert(listKeysArgs, Schemas.api.listKeys.request);
-
-        const { search, type } = listKeysArgs;
 
         const {
             searchForKeys,
             pickArr
         } = internals;
 
+        const { search, type } = listKeysArgs;
+
         return pickArr(['fingerprint', 'identifier', 'pub', 'sec'], await searchForKeys({
             search,
             type
-        }));
+        }))
+            // Make sure either a sec or pub key has been imported
+            .filter((key) => (!!importedKeys[key.fingerprint].sec || !!importedKeys[key.fingerprint].pub));
     },
     encrypt: async (encryptArgs) => {
 
         Joi.assert(encryptArgs, Schemas.api.encrypt.request);
 
-        const { for: encryptFor } = encryptArgs;
+        const { search: encryptFor } = encryptArgs;
 
         const { searchForKeys } = internals;
 
@@ -272,12 +327,5 @@ module.exports = {
 
         Joi.assert(genPasswordArgs, Schemas.api.genPassword.request);
     },
-    keyExists: () => null,
-    getAdapterArgs: () => null,
-    execute: () => null,
-    utils: {
-        firstKeyFromList: () => null,
-        keysForIdentifier: () => null,
-        firstKeyForIdentifier: () => null
-    }
+    utils: {}
 };
