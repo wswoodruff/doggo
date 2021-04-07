@@ -131,7 +131,7 @@ module.exports = class DoggoAdapterTestSuite {
             });
 
             // Bright idea:
-            // NOTE I can test for the adapter validating input by expecting
+            // NOTE: I can test for the adapter validating input by expecting
             // specific Joi errors to be thrown and look for 'err.isJoi'
 
             it('imports a valid secret key', async () => {
@@ -237,8 +237,6 @@ module.exports = class DoggoAdapterTestSuite {
                 expect(findCompare({ arr: keys, compare: PUB_SEC, on: 'fingerprint' })).to.exist();
                 expect(findCompare({ arr: keys, compare: PUB_ONLY, on: 'fingerprint' })).to.exist();
                 expect(findCompare({ arr: keys, compare: SEC_ONLY, on: 'fingerprint' })).to.exist();
-                // A quick test for the util's benefit
-                expect(findCompare({ arr: keys, compare: { fingerprint: 'pups-r-gonna-be-pups' }, on: 'fingerprint' })).to.not.exist();
 
                 await deleteAllTestKeys();
             });
@@ -279,50 +277,14 @@ module.exports = class DoggoAdapterTestSuite {
                 expect(keys.length).to.be.at.least(2);
 
                 expect(findCompare({ arr: keys, compare: PUB_SEC, on: 'fingerprint' })).to.exist();
-                // NOTE does "not" exist
-                expect(findCompare({ arr: keys, compare: PUB_ONLY, on: 'fingerprint' })).to.not.exist();
                 expect(findCompare({ arr: keys, compare: SEC_ONLY, on: 'fingerprint' })).to.exist();
+                // NOTE: does "not" exist
+                expect(findCompare({ arr: keys, compare: PUB_ONLY, on: 'fingerprint' })).to.not.exist();
 
                 await deleteAllTestKeys();
             });
 
-            it('deletes a public key by fingerprint and type "pub"', async () => {
-
-                await Doggo.api.importKey({
-                    key: await getKeyForImportKey(PUB_SEC.keyPaths.pub),
-                    type: 'pub'
-                });
-
-                const keysWithPubSec = await Doggo.api.listKeys({ search: PUB_SEC.fingerprint, type: 'pub' });
-                expect(keysWithPubSec.length).to.equal(1);
-                expect(keysWithPubSec.find(({ fingerprint }) => fingerprint === PUB_SEC.fingerprint)).to.exist();
-
-                const deleteSuccessful = await Doggo.api.deleteKey({
-                    search: PUB_SEC.fingerprint,
-                    type: 'pub'
-                });
-
-                // Assert output matches API schema
-                expect(() => Joi.assert(deleteSuccessful, Schemas.api.deleteKey.response)).to.not.throw();
-
-                expect(deleteSuccessful).to.equal(true);
-
-                // Assert the pub key is not able to be listed
-                const keysWithoutPubSec = await Doggo.api.listKeys({ search: PUB_SEC.fingerprint, type: 'pub' });
-                expect(keysWithoutPubSec.length).to.equal(0);
-
-                expect(keysWithPubSec.find(({ fingerprint }) => fingerprint === PUB_SEC.fingerprint)).to.exist();
-
-                await deleteAllTestKeys();
-            });
-
-            // TODO
-            // it('throws if invalid "type" is passed to listKeys', async () => {
-
-            //     TODO have it throw a Doggo error =)
-            // });
-
-            it('finds a key by fingerprint', async () => {
+            it('lists a key by fingerprint', async () => {
 
                 const { findCompare } = internals;
 
@@ -342,7 +304,7 @@ module.exports = class DoggoAdapterTestSuite {
                 await deleteAllTestKeys();
             });
 
-            it('finds a key by identifier', async () => {
+            it('lists a key by identifier', async () => {
 
                 const { findCompare } = internals;
 
@@ -360,15 +322,98 @@ module.exports = class DoggoAdapterTestSuite {
                 await deleteAllTestKeys();
             });
 
-            // TODO support encryption for a passed-in public key cuz that'd be saweeeeet!
-            it('encrypts PGP text for an imported secret key', async () => {
+            it('deletes a public key by fingerprint and type "pub"', async () => {
+
+                const { findCompare } = internals;
+
+                await Doggo.api.importKey({
+                    key: await getKeyForImportKey(PUB_ONLY.keyPaths.pub),
+                    type: 'pub'
+                });
+
+                const keysWithPubSec = await Doggo.api.listKeys({ search: PUB_ONLY.fingerprint, type: 'pub' });
+                expect(keysWithPubSec.length).to.equal(1);
+                expect(findCompare({ arr: keysWithPubSec, compare: PUB_ONLY, on: 'fingerprint' })).to.exist();
+
+                const deleteResult = await Doggo.api.deleteKey({
+                    search: PUB_ONLY.fingerprint,
+                    type: 'pub'
+                });
+
+                // Assert output matches API schema
+                expect(() => Joi.assert(deleteResult, Schemas.api.deleteKey.response)).to.not.throw();
+
+                expect(deleteResult).to.equal(true);
+
+                // Assert the pub key is not able to be listed
+                expect(await Doggo.api.listKeys({ search: PUB_ONLY.fingerprint, type: 'pub' }))
+                    .to.have.length(0); // Poof! It's gone!
+
+                await deleteAllTestKeys();
+            });
+
+            it('deleting a key is idempotent', async () => {
+
+                const { findCompare } = internals;
+
+                await Doggo.api.importKey({
+                    key: await getKeyForImportKey(PUB_ONLY.keyPaths.pub),
+                    type: 'pub'
+                });
+
+                const keysWithPubSec = await Doggo.api.listKeys({ search: PUB_ONLY.fingerprint, type: 'pub' });
+                expect(keysWithPubSec.length).to.equal(1);
+                expect(findCompare({ arr: keysWithPubSec, compare: PUB_ONLY, on: 'fingerprint' })).to.exist();
+
+                const deleteResult = await Doggo.api.deleteKey({
+                    search: PUB_ONLY.fingerprint,
+                    type: 'pub'
+                });
+
+                // Assert output matches API schema
+                expect(() => Joi.assert(deleteResult, Schemas.api.deleteKey.response)).to.not.throw();
+
+                expect(deleteResult).to.equal(true);
+
+                // Assert the pub key is not able to be listed
+                expect(await Doggo.api.listKeys({ search: PUB_ONLY.fingerprint, type: 'pub' }))
+                    .to.have.length(0); // Poof! It's gone!
+
                 /*
-                 *   Sry I can't remember where I
-                 *   buried ur car keys I'm just a pup
+                 * Take two deleting and asserting
                  */
+                const deleteResultTakeTwo = await Doggo.api.deleteKey({
+                    search: PUB_ONLY.fingerprint,
+                    type: 'pub'
+                });
+
+                // Assert output matches API schema
+                expect(() => Joi.assert(deleteResultTakeTwo, Schemas.api.deleteKey.response)).to.not.throw();
+
+                expect(deleteResultTakeTwo).to.equal(true);
+
+                // Assert the pub key is still not able to be listed
+                expect(await Doggo.api.listKeys({ search: PUB_ONLY.fingerprint, type: 'pub' }))
+                    .to.have.length(0); // Poof! It's still gone!
+
+                await deleteAllTestKeys();
+            });
+
+            // TODO
+            // it('throws if invalid "type" is passed to listKeys', async () => {
+
+            //     TODO have it throw a Doggo error =)
+            // });
+
+            // TODO support encryption for a passed-in public key cuz that'd be saweeeeet!
+            it('encrypts PGP text for an imported public key', async () => {
+
                 const { CLEAR_TEXT: { carKeys } } = TestKeyInfo;
 
-                await importAllKeys();
+                await Doggo.api.importKey({
+                    key: await getKeyForImportKey(PUB_SEC.keyPaths.pub),
+                    type: 'pub'
+                });
 
                 const encrypted1 = await Doggo.api.encrypt({
                     search: PUB_SEC.fingerprint,
@@ -402,10 +447,7 @@ module.exports = class DoggoAdapterTestSuite {
             // throw Doggo.TooManyKeysError if multiple keys found from "search"
 
             it('decrypts text for an imported secret key', async () => {
-                /*
-                 *   Sry I can't remember where I
-                 *   buried ur car keys I'm just a pup
-                 */
+
                 const { CLEAR_TEXT: { carKeys } } = TestKeyInfo;
 
                 await importAllKeys();
@@ -426,10 +468,7 @@ module.exports = class DoggoAdapterTestSuite {
             // This is an important test so it gets a star
             // *
             it('decrypts exported text for an imported secret key', async () => {
-                /*
-                 *   Sry I can't remember where I
-                 *   buried ur car keys I'm just a pup
-                 */
+
                 const { CLEAR_TEXT: { carKeys } } = TestKeyInfo;
 
                 await importAllKeys();
