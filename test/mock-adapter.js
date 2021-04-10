@@ -314,7 +314,6 @@ module.exports = {
     decrypt: async (decryptArgs) => {
 
         // TODO make this more robust
-
         // Accommodate async
         await true;
 

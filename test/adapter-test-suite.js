@@ -220,7 +220,7 @@ module.exports = class DoggoAdapterTestSuite {
                 await deleteAllTestKeys();
             });
 
-            it('lists "all" keys if passed no options', async () => {
+            it('lists all available keys if passed no options', async () => {
 
                 const { findCompare } = internals;
 
@@ -392,7 +392,7 @@ module.exports = class DoggoAdapterTestSuite {
 
                 expect(deleteResultTakeTwo).to.equal(true);
 
-                // Assert the pub key is still not able to be listed
+                // Assert the pub key is not able to be listed
                 expect(await Doggo.api.listKeys({ search: PUB_ONLY.fingerprint, type: 'pub' }))
                     .to.have.length(0); // Poof! It's still gone!
 
