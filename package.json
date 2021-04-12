@@ -1,5 +1,5 @@
 {
-  "name": "doggo",
+  "name": "@xdcreative/doggo",
   "version": "0.2.1",
   "description": "doggo",
   "author": "wswoodruff",
@@ -20,5 +20,17 @@
   "devDependencies": {
     "@hapi/code": "8.0.2",
     "@hapi/lab": "24.0.0"
-  }
+  },
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wswoodruff/doggo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wswoodruff/doggo/issues"
+  },
+  "homepage": "https://github.com/wswoodruff/doggo#readme"
 }

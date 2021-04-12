@@ -1,7 +1,6 @@
 'use strict';
 
 const Code = require('@hapi/code');
-
 const Lab = require('@hapi/lab');
 
 const Doggo = require('../lib');
