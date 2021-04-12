@@ -8,6 +8,10 @@
 const { promises: Fs } = require('fs');
 
 const Joi = require('joi');
+const {
+    InvalidKeyError
+    // TooManyKeysError
+} = require('../lib');
 
 const Doggo = require('../lib');
 const Schemas = require('../lib/schema');
@@ -233,8 +237,10 @@ module.exports = {
                 addToImportedKeys(SEC_ONLY, 'sec');
                 break;
             default:
-                throw new Error('Developer error');
+                throw new InvalidKeyError();
         }
+
+        // console.log('matchedKey', matchedKey);
 
         return getKeyBasicInfo(matchedKey);
     },

@@ -115,6 +115,52 @@ module.exports = class DoggoAdapterTestSuite {
 
         describe(`DoggoAdapterTestSuite: doggo adapter "${name}" tests:`, () => {
 
+            it('validates importKey args', async () => {
+
+                let pubError1;
+                let pubError2;
+                let secError1;
+
+                try {
+                    await Doggo.api.importKey({
+                        type: 'pub'
+                    });
+                }
+                catch (err) {
+                    pubError1 = err;
+                }
+
+                expect(pubError1 && pubError1.isJoi).to.equal(true);
+                expect(pubError1).to.match(/"key" is required/);
+
+                try {
+                    await Doggo.api.importKey({
+                        badKey: '123',
+                        key: 'abc',
+                        type: 'pub'
+                    });
+                }
+                catch (err) {
+                    pubError2 = err;
+                }
+
+                expect(pubError2 && pubError2.isJoi).to.equal(true);
+                expect(pubError2).to.match(/"badKey" is not allowed/);
+
+                try {
+                    await Doggo.api.importKey({
+                        key: 'abc-notakey',
+                        type: 'sec'
+                    });
+                }
+                catch (err) {
+                    secError1 = err;
+                }
+
+                expect(secError1 && secError1.isJoi).to.equal(true);
+                expect(secError1).to.match(/"password" is required/);
+            });
+
             it('imports a valid public key', async () => {
 
                 const pubSecPub = await Doggo.api.importKey({
@@ -128,11 +174,17 @@ module.exports = class DoggoAdapterTestSuite {
                 // Assert correct key info was returned
                 expect(pubSecPub.fingerprint).to.equal(PUB_SEC.fingerprint);
                 expect(pubSecPub.identifier).to.equal(PUB_SEC.identifier);
+
+                await deleteAllTestKeys();
             });
 
-            // Bright idea:
-            // NOTE: I can test for the adapter validating input by expecting
-            // specific Joi errors to be thrown and look for 'err.isJoi'
+            it('throws InvalidKeyError when importing an invalid key', async () => {
+
+                await expect(Doggo.api.importKey({
+                    key: 'abc-notakey',
+                    type: 'pub'
+                })).to.reject(Doggo.InvalidKeyError);
+            });
 
             it('imports a valid secret key', async () => {
 
@@ -148,6 +200,8 @@ module.exports = class DoggoAdapterTestSuite {
                 // Assert correct key info was returned
                 expect(pubSecSec.fingerprint).to.equal(PUB_SEC.fingerprint);
                 expect(pubSecSec.identifier).to.equal(PUB_SEC.identifier);
+
+                await deleteAllTestKeys();
             });
 
             it('importing valid keys is idempotent', async () => {
@@ -193,11 +247,20 @@ module.exports = class DoggoAdapterTestSuite {
                 await deleteAllTestKeys();
             });
 
-            // TODO
-            // it('throws when importing invalid keys', async () => {
+            it('validates listKeys args', async () => {
 
-            //     // throw Doggo.InvalidKeyError
-            // });
+                let error;
+
+                try {
+                    await Doggo.api.listKeys({ badKey2: 'all' });
+                }
+                catch (err) {
+                    error = err;
+                }
+
+                expect(error && error.isJoi).to.equal(true);
+                expect(error.message).to.match(/"badKey2" is not allowed/);
+            });
 
             it('lists all available keys for type "all"', async () => {
 
@@ -322,6 +385,21 @@ module.exports = class DoggoAdapterTestSuite {
                 await deleteAllTestKeys();
             });
 
+            it('validates deleteKey args', async () => {
+
+                let error;
+
+                try {
+                    await Doggo.api.deleteKey({ badKey3: 'all' });
+                }
+                catch (err) {
+                    error = err;
+                }
+
+                expect(error && error.isJoi).to.equal(true);
+                expect(error.message).to.match(/"badKey3" is not allowed/);
+            });
+
             it('deletes a public key by fingerprint and type "pub"', async () => {
 
                 const { findCompare } = internals;
@@ -399,11 +477,22 @@ module.exports = class DoggoAdapterTestSuite {
                 await deleteAllTestKeys();
             });
 
-            // TODO
-            // it('throws if invalid "type" is passed to listKeys', async () => {
+            it('validates encrypt args', async () => {
 
-            //     TODO have it throw a Doggo error =)
-            // });
+                let error;
+
+                try {
+                    await Doggo.api.encrypt({
+                        search: PUB_SEC.fingerprint
+                    });
+                }
+                catch (err) {
+                    error = err;
+                }
+
+                expect(error && error.isJoi).to.equal(true);
+                expect(error.message).to.match(/"clearText" is required/);
+            });
 
             // TODO support encryption for a passed-in public key cuz that'd be saweeeeet!
             it('encrypts PGP text for an imported public key', async () => {
@@ -453,7 +542,7 @@ module.exports = class DoggoAdapterTestSuite {
                 await importAllKeys();
 
                 const decrypted = await Doggo.api.decrypt({
-                    text: PUB_SEC.encryptedText.carKeys[0],
+                    cipherText: PUB_SEC.encryptedText.carKeys[0],
                     password: PUB_SEC.password
                 });
 
@@ -483,7 +572,7 @@ module.exports = class DoggoAdapterTestSuite {
                 expect(encrypted).to.not.equal(carKeys);
 
                 const decrypted = await Doggo.api.decrypt({
-                    text: encrypted,
+                    cipherText: encrypted,
                     password: PUB_SEC.password
                 });
 
@@ -530,7 +619,10 @@ module.exports = class DoggoAdapterTestSuite {
 
                 await importAllKeys();
 
-                const [pubSec] = await Doggo.api.exportKeys({ search: PUB_SEC.fingerprint, type: 'sec' });
+                const [pubSec] = await Doggo.api.exportKeys({
+                    search: PUB_SEC.fingerprint,
+                    type: 'sec'
+                });
 
                 expect(() => Joi.assert(pubSec, Schemas.api.exportKeys.response)).to.not.throw();
 
@@ -538,7 +630,10 @@ module.exports = class DoggoAdapterTestSuite {
                 expect(pubSec.sec).to.equal(await getFileContents(PUB_SEC.keyPaths.sec));
 
                 // Testing that the crypto system can derive a public key from just a secret key
-                const [secOnly] = await Doggo.api.exportKeys({ search: SEC_ONLY.fingerprint, type: 'sec' });
+                const [secOnly] = await Doggo.api.exportKeys({
+                    search: SEC_ONLY.fingerprint,
+                    type: 'sec'
+                });
 
                 expect(() => Joi.assert(secOnly, Schemas.api.exportKeys.response)).to.not.throw();
 
@@ -554,7 +649,10 @@ module.exports = class DoggoAdapterTestSuite {
 
                 await importAllKeys();
 
-                const [pubSec] = await Doggo.api.exportKeys({ search: PUB_SEC.fingerprint, type: 'all' });
+                const [pubSec] = await Doggo.api.exportKeys({
+                    search: PUB_SEC.fingerprint,
+                    type: 'all'
+                });
 
                 expect(() => Joi.assert(pubSec, Schemas.api.exportKeys.response)).to.not.throw();
 
@@ -562,7 +660,10 @@ module.exports = class DoggoAdapterTestSuite {
                 expect(pubSec.sec).to.equal(await getFileContents(PUB_SEC.keyPaths.sec));
 
                 // Testing that the crypto system can derive a public key from just a secret key
-                const [secOnly] = await Doggo.api.exportKeys({ search: SEC_ONLY.fingerprint, type: 'all' });
+                const [secOnly] = await Doggo.api.exportKeys({
+                    search: SEC_ONLY.fingerprint,
+                    type: 'all'
+                });
 
                 expect(() => Joi.assert(secOnly, Schemas.api.exportKeys.response)).to.not.throw();
 
@@ -575,28 +676,7 @@ module.exports = class DoggoAdapterTestSuite {
     }
 };
 
-internals.safeUnlink = async (unlinkPath) => {
-
-    if (await Fs.exists(unlinkPath)) {
-        await Fs.unlink(unlinkPath);
-    }
-};
-
-internals.genKeys = async (Doggo, ...args) => await Doggo.api.genKeys(...args);
-
-internals.first = (arr) => arr[0];
-
 internals.findCompare = ({ arr, compare, on }) => arr.find((obj) => obj[on] === compare[on]);
-
-internals.randomNumberNoDot = () => String(Math.random()).replace('.', '');
-
-internals.extractFingerprintFromCreationSuccessMessage = async (Doggo, msg) => {
-
-    const [, res] = await Doggo.api.getFingerprint(msg.split(' key ')[1].split(' ')[0]);
-    return res[0].fingerprint;
-};
-
-internals.isCI = () => process.env.TRAVIS || process.env.CI;
 
 internals.getFileContents = async (path) => {
 
