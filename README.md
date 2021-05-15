@@ -8,5 +8,7 @@
 npm install @xdcreative/doggo
 ```
 
+> Everyone loves a project with a mascot =P
+
 <img width=380 src="https://swervy.io/code/doggo-lock" />
 
