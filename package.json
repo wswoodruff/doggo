@@ -1,7 +1,7 @@
 {
   "name": "@xdcreative/doggo",
   "version": "0.2.5",
-  "description": "doggo",
+  "description": "Friendly, secure, open-source password manager",
   "author": "wswoodruff",
   "license": "MIT",
   "main": "lib/index.js",
