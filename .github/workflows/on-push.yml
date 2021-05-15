@@ -7,7 +7,7 @@ jobs:
     # Containers must run in Linux based operating systems
     runs-on: ubuntu-latest
     # Docker Hub image that `testing-harness` executes in
-    container: node:14
+    container: node:16
 
     # # ========= UNCOMMENT FOR POSTGRES DB =========
     # # Service containers to run with `testing-harness`

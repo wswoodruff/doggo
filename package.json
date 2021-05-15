@@ -5,6 +5,10 @@
   "author": "wswoodruff",
   "license": "MIT",
   "main": "lib/index.js",
+  "engines": {
+    "node": "16.x.x",
+    "npm": "7.x.x"
+  },
   "scripts": {
     "lint": "eslint .",
     "test": "NODE_ENV=test lab -a @hapi/code -I '__core-js_shared__,core,cptable,FinalizationRegistry,WeakRef' -L --verbose -t 100"
