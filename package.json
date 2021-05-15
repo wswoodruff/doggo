@@ -32,5 +32,8 @@
   "bugs": {
     "url": "https://github.com/wswoodruff/doggo/issues"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "homepage": "https://github.com/wswoodruff/doggo#readme"
 }
