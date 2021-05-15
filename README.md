@@ -3,7 +3,7 @@
 > Friendly, secure, open-source password manager
 
 ```bash
-$ npm install @xdcreative/doggo
+npm install @xdcreative/doggo
 ```
 
 <img width=380 src="https://swervy.io/code/doggo-lock" />
