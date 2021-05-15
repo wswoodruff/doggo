@@ -14,13 +14,13 @@
     "test": "NODE_ENV=test lab -a @hapi/code -I '__core-js_shared__,core,cptable,FinalizationRegistry,WeakRef' -L --verbose -t 100"
   },
   "dependencies": {
-    "@hapi/cryptiles": "5.1.0",
-    "@hapi/eslint-config-hapi": "13.0.2",
-    "@hapi/eslint-plugin-hapi": "4.3.6",
     "joi": "17.4.0"
   },
   "devDependencies": {
     "@hapi/code": "8.0.3",
+    "@hapi/cryptiles": "5.1.0",
+    "@hapi/eslint-config-hapi": "13.0.2",
+    "@hapi/eslint-plugin-hapi": "4.3.6",
     "@hapi/lab": "24.2.1"
   },
   "directories": {
