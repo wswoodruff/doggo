@@ -9,11 +9,10 @@ const { promises: Fs } = require('fs');
 
 const Joi = require('joi');
 const {
-    InvalidKeyError
-    // TooManyKeysError
+    InvalidKeyError,
+    TooManyKeysError
 } = require('../lib');
 
-const Doggo = require('../lib');
 const Schemas = require('../lib/schema');
 // This lone warrior, 'TestKeyInfo', is the ultimate
 // judge for if things between mock-adapter and
@@ -24,6 +23,8 @@ const internals = {};
 
 const { KEYS: { PUB_SEC, SEC_ONLY, PUB_ONLY } } = TestKeyInfo;
 
+// This hack helps us keep track to give different results
+// for encrypting the same message multiple times
 let naughtyDogBadBoiNoGoodGlobalEncryptionCounter = 0;
 
 // This represents the state for imported keys that
@@ -300,7 +301,7 @@ module.exports = {
         const keys = await searchForKeys({ search: encryptFor });
 
         if (keys.length > 1) {
-            throw new Doggo.TooManyKeysError();
+            throw new TooManyKeysError();
         }
 
         // Cheating here — we expect pubsec's info to be passed to 'search' —

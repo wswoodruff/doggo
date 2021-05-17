@@ -7,14 +7,7 @@ const Joi = require('joi');
 const Schemas = require('../lib/schema');
 const TestKeyInfo = require('./test-key-info');
 
-// const InvalidKeyError = require('../lib/errors/InvalidKeyError');
-// const TooManyKeysError = require('../lib/errors/TooManyKeysError');
-
 const internals = {};
-
-// TODO clear gpg cache before these tests
-// TODO move this TODO comment to doggo-adapter-gpg
-// Run 'gpgconf --kill gpg-agent'
 
 module.exports = class DoggoAdapterTestSuite {
 
