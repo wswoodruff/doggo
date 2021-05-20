@@ -30,9 +30,9 @@ let naughtyDogBadBoiNoGoodGlobalEncryptionCounter = 0;
 // This represents the state for imported keys that
 // real cryptosystems will have
 const importedKeys = {
-    [PUB_SEC.fingerprint]: { pub: false, sec: false },
-    [SEC_ONLY.fingerprint]: { pub: false, sec: false },
-    [PUB_ONLY.fingerprint]: { pub: false, sec: false }
+    [String(PUB_SEC.fingerprint)]: { pub: false, sec: false },
+    [String(SEC_ONLY.fingerprint)]: { pub: false, sec: false },
+    [String(PUB_ONLY.fingerprint)]: { pub: false, sec: false }
 };
 
 internals.addToImportedKeys = ({ fingerprint }, type) => {
@@ -53,7 +53,7 @@ internals.removeFromImportedKeys = ({ fingerprint }, type) => {
     };
 };
 
-// TODO support a chainable api so we can tack on '.first()' for example
+// TODO support a chainable api so we can tack on '.first()' or something
 
 internals.getAllKeyValues = async () => {
 
@@ -79,19 +79,25 @@ internals.getKeyBasicInfo = ({ fingerprint, identifier }) => ({
 
 internals.lower = (str) => str.toLowerCase();
 
+internals.pick = (keys, obj) => {
+
+    if (!obj) {
+        return null;
+    }
+
+    return [].concat(keys)
+        .reduce((collector, key) => {
+
+            return {
+                ...collector,
+                [key]: obj[key]
+            };
+        }, {});
+};
+
 internals.pickArr = (keys, arr) => {
 
-    return arr.map((obj) => {
-
-        return [].concat(keys)
-            .reduce((collector, key) => {
-
-                return {
-                    ...collector,
-                    [key]: obj[key]
-                };
-            }, {});
-    });
+    return arr.map((obj) => internals.pick(keys, obj));
 };
 
 internals.getFileContents = async (path) => {
@@ -102,33 +108,64 @@ internals.getFileContents = async (path) => {
 
 internals.searchForKeys = async (options) => {
 
+    Joi.assert(
+        options,
+        Joi.object({
+            search: Joi.string(),
+            fingerprint: Joi.string().min(40).max(40),
+            type: Joi.valid('pub', 'sec', 'all'),
+            exportKeys: Joi.bool(),
+            bypassImportedFilter: Joi.bool()
+        })
+    );
+
     const {
         search = '',
+        fingerprint: fingerprintOption,
         type = 'all',
-        map = (x) => x,
-        resolve = false
+        exportKeys = false,
+        bypassImportedFilter = false
     } = options;
 
     const { lower, getFileContents } = internals;
 
-    const filteredKeys = [
-        PUB_SEC,
-        SEC_ONLY,
-        PUB_ONLY
-    ]
-        // Search filter
-        .filter(({ fingerprint, identifier }) => {
+    let keys = [];
 
-            // Just being clunky but clear about what's going on
-            if (!search) {
-                return true;
-            }
+    if (fingerprintOption) {
+        keys = [
+            PUB_SEC,
+            SEC_ONLY,
+            PUB_ONLY
+        ]
+            // Fingerprint filter
+            .filter(({ fingerprint }) => {
 
-            // Case-insensitive
-            return lower(fingerprint).includes(lower(search))
-                || lower(identifier).includes(lower(search));
-        })
-        // Type filter
+                // Case-insensitive
+                return lower(fingerprint) === lower(fingerprintOption);
+            });
+    }
+    else {
+        keys = [
+            PUB_SEC,
+            SEC_ONLY,
+            PUB_ONLY
+        ]
+            // Search filter
+            .filter(({ fingerprint, identifier }) => {
+
+                // Just being clunky but clear about what's going on
+                if (!search) {
+                    return true;
+                }
+
+                // Case-insensitive
+                return lower(fingerprint).includes(lower(search))
+                    || lower(identifier).includes(lower(search));
+            });
+    }
+
+    // Key type filter
+    keys = keys
         .filter(({ keyPaths }) => {
 
             switch (type) {
@@ -140,65 +177,89 @@ internals.searchForKeys = async (options) => {
                     return !!keyPaths.sec;
             }
         })
-        .map((keyInfo) => map(keyInfo));
+        .filter(({ fingerprint }) => {
 
-    if (!resolve) {
-        return filteredKeys
-            .map((key) => ({
-                ...key,
-                pub: null,
-                sec: null
-            }));
+            if (bypassImportedFilter) {
+                return true;
+            }
+
+            // Filter out unimported keys
+            return !!(importedKeys[fingerprint].sec || importedKeys[fingerprint].pub);
+        });
+
+    if (!exportKeys) {
+        // Set 'pub' and 'sec' to 'null' to signify they haven't been loaded in
+        const res = keys.map((key) => ({ ...key, pub: null, sec: null }));
+
+        if (fingerprintOption) {
+            return res[0];
+        }
+
+        return res;
     }
 
-    // Add 'keyValues' prop
-    return await Promise.all(
-        filteredKeys
-            .map(async ({ keyPaths, ...rest }) => {
+    // 'exportKeys' is true so we'll grab those and add the 'keyValues' prop
+    const res = await Promise.all(keys.map(async ({ keyPaths, ...rest }) => {
 
-                return {
-                    ...rest,
-                    keyPaths,
-                    keyValues: {
-                        pub: (type !== 'pub' && type !== 'all') ? null : await getFileContents(keyPaths.pub),
-                        sec: (type !== 'sec' && type !== 'all') ? null : await getFileContents(keyPaths.sec)
-                    }
-                };
-            })
-    );
+        const keyValues = {
+            pub: null,
+            sec: null
+        };
+
+        if (type === 'pub' || type === 'all') {
+            keyValues.pub = !keyPaths.pub ? null : await getFileContents(keyPaths.pub);
+        }
+
+        if (type === 'sec' || type === 'all') {
+            keyValues.sec = !keyPaths.sec ? null : await getFileContents(keyPaths.sec);
+        }
+
+        return {
+            ...rest,
+            keyPaths,
+            keyValues
+        };
+    }));
+
+    if (fingerprintOption) {
+        return res[0];
+    }
+
+    return res;
 };
 
 module.exports = {
     name: 'mock-adapter',
-    genKeys: (genKeyArgs) => {
+    genKeys: (args) => {
 
-        Joi.assert(genKeyArgs, Schemas.api.genKeys.request);
+        Joi.assert(args, Schemas.api.genKeys.request);
     },
-    deleteKey: async (deleteKeyArgs) => {
+    deleteKey: async (args) => {
 
-        Joi.assert(deleteKeyArgs, Schemas.api.deleteKey.request);
+        Joi.assert(args, Schemas.api.deleteKey.request);
 
         const {
             searchForKeys,
             removeFromImportedKeys
         } = internals;
 
-        const { search, type } = deleteKeyArgs;
+        const { fingerprint, type } = args;
 
         const [keyToDelete] = await searchForKeys({
-            search,
-            type
+            search: fingerprint,
+            type,
+            bypassImportedFilter: true
         });
 
         removeFromImportedKeys(keyToDelete, type);
 
         return true;
     },
-    importKey: async (importKeyArgs) => {
+    importKey: async (args) => {
 
-        Joi.assert(importKeyArgs, Schemas.api.importKey.request);
+        Joi.assert(args, Schemas.api.importKey.request);
 
-        const { key } = importKeyArgs;
+        const { key } = args;
 
         const {
             getAllKeyValues,
@@ -241,60 +302,75 @@ module.exports = {
                 throw new InvalidKeyError();
         }
 
-        // console.log('matchedKey', matchedKey);
-
         return getKeyBasicInfo(matchedKey);
     },
-    exportKeys: async (exportKeysArgs) => {
+    exportKeys: async (args) => {
 
-        Joi.assert(exportKeysArgs, Schemas.api.exportKeys.request);
+        Joi.assert(args, Schemas.api.exportKeys.request);
 
         const { searchForKeys } = internals;
 
-        const { search, type } = exportKeysArgs;
+        const { fingerprint, type } = args;
 
-        const keys = await searchForKeys({
-            search,
+        const {
+            fingerprint: exportFingerprint,
+            identifier,
+            keyValues
+        } = await searchForKeys({
+            fingerprint,
             type,
-            resolve: true
+            exportKeys: true
         });
 
-        return keys
-            .map(({
-                fingerprint,
-                identifier,
-                keyValues
-            }) => ({
-                fingerprint,
-                identifier,
-                // importedKeys represents global state like what we have with a gpg keychain
-                pub: importedKeys[fingerprint].pub ? keyValues.pub : null,
-                sec: importedKeys[fingerprint].sec ? keyValues.sec : null
-            }));
+        return {
+            fingerprint: exportFingerprint,
+            identifier,
+            pub: keyValues.pub,
+            sec: keyValues.sec
+        };
     },
-    listKeys: async (listKeysArgs = {}) => {
+    listKeys: async (args = {}) => {
 
-        Joi.assert(listKeysArgs, Schemas.api.listKeys.request);
+        Joi.assert(args, Schemas.api.listKeys.request);
 
         const {
             searchForKeys,
+            pick,
             pickArr
         } = internals;
 
-        const { search, type } = listKeysArgs;
+        const { search, fingerprint, type } = args;
 
-        return pickArr(['fingerprint', 'identifier', 'pub', 'sec'], await searchForKeys({
-            search,
-            type
-        }))
-            // Make sure either a sec or pub key has been imported
-            .filter((key) => (!!importedKeys[key.fingerprint].sec || !!importedKeys[key.fingerprint].pub));
+        const keys = [
+            'fingerprint',
+            'identifier',
+            'pub',
+            'sec'
+        ];
+
+        if (fingerprint) {
+            return pick(
+                keys,
+                await searchForKeys({
+                    fingerprint,
+                    type
+                })
+            );
+        }
+
+        return pickArr(
+            keys,
+            await searchForKeys({
+                search,
+                type
+            })
+        );
     },
-    encrypt: async (encryptArgs) => {
+    encrypt: async (args) => {
 
-        Joi.assert(encryptArgs, Schemas.api.encrypt.request);
+        Joi.assert(args, Schemas.api.encrypt.request);
 
-        const { search: encryptFor } = encryptArgs;
+        const { search: encryptFor } = args;
 
         const { searchForKeys } = internals;
 
@@ -318,20 +394,20 @@ module.exports = {
         // This cycles through the items in 'carKeys.encrypted'
         return carKeys.encrypted[++naughtyDogBadBoiNoGoodGlobalEncryptionCounter % carKeys.encrypted.length];
     },
-    decrypt: async (decryptArgs) => {
+    decrypt: async (args) => {
 
         // TODO make this more robust
         // Accommodate async
         await true;
 
-        Joi.assert(decryptArgs, Schemas.api.decrypt.request);
+        Joi.assert(args, Schemas.api.decrypt.request);
 
         const { KEYS: { PUB_SEC: { encryptedText: { carKeys: { clearText } } } } } = TestKeyInfo;
         return clearText;
     },
-    genPassword: (genPasswordArgs) => {
+    genPassword: (args) => {
 
-        Joi.assert(genPasswordArgs, Schemas.api.genPassword.request);
+        Joi.assert(args, Schemas.api.genPassword.request);
     },
     utils: {}
 };
